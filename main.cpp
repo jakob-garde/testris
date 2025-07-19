@@ -4,23 +4,54 @@
 #include "lib/jg_cbui.h"
 
 
+struct TestrisState {
+    u64 frameno;
+    PlafGlfw *plf;
+    MContext *ctx;
+    u32 mode;
+};
+static TestrisState _g_state;
+static TestrisState *g_state;
+
+
+void DoMainMenu() {
+    UI_LayoutExpandCenter();
+
+    UI_Label("Hello testris");
+
+}
 
 
 void RunProgram() {
-    MContext *ctx = InitBaselayer();
+    g_state = &_g_state;
+    g_state->ctx = InitBaselayer();
+    g_state->plf = PlafGlfwInit("Testris");
+    g_state->frameno = 0;
+    g_state->mode = 0;
+
+    InitImUi(g_state->plf->width, g_state->plf->height, &g_state->frameno);
 
 
-    PlafGlfw* plf = PlafGlfwInit("Testris");
-    u64 frameno = 0;
-    InitImUi(plf->width, plf->height, &frameno);
 
-
-    while (GetWindowShouldClose(plf) == false && GetEscape() == false) {
+    while (GetWindowShouldClose(g_state->plf) == false && GetEscape() == false) {
         XSleep(1);
 
+        switch (g_state->mode) {
+            case 0 : {
+                DoMainMenu();
+            } break;
 
-        UI_FrameEnd(ctx->a_tmp, plf->width, plf->height);
-        PlafGlfwUpdate(plf);
+            case 1 : {
+
+            } break;
+
+        default:
+            break;
+        }
+
+
+        UI_FrameEnd(g_state->ctx->a_tmp, g_state->plf->width, g_state->plf->height);
+        PlafGlfwUpdate(g_state->plf);
     }
 }
 
