@@ -6,15 +6,57 @@
 #include "../cbui/cbui_includes.h"
 
 
-struct TestrisState {
+struct CbuiState {
+    MContext *ctx;
     u64 frameno;
     PlafGlfw *plf;
-    MContext *ctx;
-    u32 mode;
     bool running;
 };
-static TestrisState _g_state;
-static TestrisState *g_state;
+
+static CbuiState _g_cbui_state;
+static CbuiState *cbui;
+
+CbuiState *CbuiInit__() {
+    cbui = &_g_cbui_state;
+    cbui->ctx = InitCbui(&cbui->frameno, &cbui->plf);
+    cbui->running = true;
+    return cbui;
+}
+
+void CbuiFrameStart() {
+    ArenaClear(cbui->ctx->a_tmp);
+    cbui->frameno++;
+    PlafGlfwUpdate(cbui->plf);
+    ImageBufferClear(cbui->plf->width, cbui->plf->height);
+
+
+    // TODO: clean up these globals
+    g_mouse_x = cbui->plf->cursorpos.x;
+    g_mouse_y = cbui->plf->cursorpos.y;
+    g_mouse_down = MouseLeft().ended_down;
+    g_mouse_pushed = MouseLeft().pushed;
+}
+
+void CbuiFrameEnd() {
+    UI_FrameEnd(cbui->ctx->a_tmp, cbui->plf->width, cbui->plf->height);
+    SpriteRender_BlitAndCLear(InitImageRGBA(cbui->plf->width, cbui->plf->height, g_image_buffer));
+    PlafGlfwUpdate(cbui->plf);
+
+    cbui->running = cbui->running && !GetEscape() && !GetWindowShouldClose(cbui->plf);
+
+    // TODO: get delta t and framerate under control
+    XSleep(1);
+}
+
+void CbuiExit() {
+    PlafGlfwTerminate(cbui->plf);
+}
+
+
+struct Testris {
+    u32 mode;
+};
+static Testris _g_testris_state;
 
 
 void DoMainMenu() {
@@ -22,7 +64,7 @@ void DoMainMenu() {
 
     bool close;
     UI_CoolPopUp(400, 170, 20, &close);
-    if (close) g_state->running = false;
+    if (close) cbui->running = false;
 
     UI_Label("Rotate         Mouse Left");
     UI_Label("Pan            Mouse Right");
@@ -34,27 +76,16 @@ void DoMainMenu() {
 
 
 void RunProgram() {
-    g_state = &_g_state;
-    g_state->frameno = 0;
-    g_state->mode = 0;
-    g_state->ctx = InitCbui(&g_state->frameno, &g_state->plf);
-    g_state->running = true;
+    cbui = CbuiInit__();
 
-    while (g_state->running) {
+    Testris *testris = &_g_testris_state;
+    testris->mode = 0;
 
-        // TODO: should be in the gamestate struct, and generalized in the init.h cbui unit
-        ArenaClear(g_state->ctx->a_tmp);
-        g_state->frameno++;
-        PlafGlfwUpdate(g_state->plf);
-        ImageBufferClear(g_state->plf->width, g_state->plf->height);
+    while (cbui->running) {
+        CbuiFrameStart();
 
 
-        g_mouse_x = g_state->plf->cursorpos.x;
-        g_mouse_y = g_state->plf->cursorpos.y;
-        g_mouse_down = MouseLeft().ended_down;
-        g_mouse_pushed = MouseLeft().pushed;
-
-        switch (g_state->mode) {
+        switch (testris->mode) {
             case 0 : {
                 DoMainMenu();
             } break;
@@ -68,19 +99,9 @@ void RunProgram() {
         }
 
 
-        // TODO: should also be under control in init.h unit
-        UI_FrameEnd(g_state->ctx->a_tmp, g_state->plf->width, g_state->plf->height);
-        SpriteRender_BlitAndCLear(InitImageRGBA(g_state->plf->width, g_state->plf->height, g_image_buffer));
-        PlafGlfwUpdate(g_state->plf);
-
-        bool running = running && !GetEscape() && !GetWindowShouldClose(g_state->plf);
-
-
-        // TODO: get delta t and framerate under control
-        XSleep(1);
+        CbuiFrameEnd();
     }
-
-    PlafGlfwTerminate(g_state->plf);
+    CbuiExit();
 }
 
 
