@@ -60,7 +60,7 @@ void DoHelpMenu() {
 
 void DoTitleScreen() {
     UI_LayoutExpandCenter();
-    Widget *vert = UI_LayoutVertical();
+    Widget *vert = UI_LayoutVertical(true);
 
     SetFontSize(FS_48);
     Widget *lbl_1 = UI_Label("Welcome to Testris");
@@ -79,7 +79,7 @@ void DoMainScreen() {
 }
 
 void RunProgram() {
-    cbui = CbuiInit__();
+    cbui = CbuiInit();
 
     testris = &_g_testris_state;
 
@@ -87,15 +87,15 @@ void RunProgram() {
         CbuiFrameStart();
 
         switch (testris->mode) {
-            case 0 : {
+            case TM_TITLE : {
                 DoTitleScreen();
             } break;
 
-            case 1 : {
+            case TM_MAIN : {
                 DoMainScreen();
             } break;
 
-            case 2 : {
+            case TM_HELPS : {
                 DoHelpMenu();
             } break;
 
