@@ -6,51 +6,114 @@
 #include "../cbui/cbui_includes.h"
 
 
+enum TestrisMode {
+    TM_TITLE,
+    TM_MAIN,
+    TM_HELPS,
+
+    TM_CNT
+};
+
+
 struct Testris {
-    u32 mode;
+    TestrisMode mode;
+    TestrisMode mode_prev;
+
+    void SetMode(TestrisMode mode_new) {
+        mode_prev = mode;
+        mode = mode_new;
+    }
+
+    void SetModePrev() {
+        TestrisMode swap = mode_prev;
+        mode_prev = mode;
+        mode = swap;
+    }
+
+    void ToggleMode(TestrisMode mode_toggle) {
+        if (mode == mode_toggle) {
+            SetModePrev();
+        }
+        else {
+            SetMode(mode_toggle);
+        }
+    }
 };
 static Testris _g_testris_state;
+static Testris *testris;
 
 
-void DoMainMenu() {
+void DoHelpMenu() {
     UI_LayoutExpandCenter();
 
     bool close;
-    UI_CoolPopUp(400, 170, 20, &close);
-    if (close) cbui->running = false;
+    UI_CoolPopUp(470, 165, 20, &close);
+    if (close) testris->SetModePrev();
 
-    UI_Label("Rotate         Mouse Left");
-    UI_Label("Pan            Mouse Right");
-    UI_Label("Drag Object    Mouse Left");
-    UI_Label("Drag Vertical  Hold Ctrl");
-    UI_Label("F1             Help Menu");
-    UI_Label("Esc            Quit");
+    UI_Label("Rotate Block   Up");
+    UI_Label("Move Block     Left/Right/Down");
+    UI_Label("");
+    UI_Label("Help           F1");
+    UI_Label("Fullscreen     F10");
+    UI_Label("Exit           Esc");
 }
 
+void DoTitleScreen() {
+    UI_LayoutExpandCenter();
+    Widget *vert = UI_LayoutVertical();
+
+    SetFontSize(FS_48);
+    Widget *lbl_1 = UI_Label("Welcome to Testris");
+
+    SetFontSize(FS_24);
+    Widget *lbl_2 = UI_Label("(press space to start)");
+
+    if (GetSpace()) {
+        testris->SetMode(TM_MAIN);
+    }
+}
+
+void DoMainScreen() {
+    UI_LayoutExpandCenter();
+    UI_Label("Main Game ...");
+}
 
 void RunProgram() {
     cbui = CbuiInit__();
 
-    Testris *testris = &_g_testris_state;
-    testris->mode = 0;
+    testris = &_g_testris_state;
 
     while (cbui->running) {
         CbuiFrameStart();
 
-
         switch (testris->mode) {
             case 0 : {
-                DoMainMenu();
+                DoTitleScreen();
             } break;
 
             case 1 : {
-
+                DoMainScreen();
             } break;
 
-        default:
-            break;
+            case 2 : {
+                DoHelpMenu();
+            } break;
+
+            case 3 : {
+                //
+            } break;
+
+            case 4 : {
+                //
+            } break;
+
+            default: break;
         }
 
+        if (GetFKey(1)) {
+            printf("toggling ...\n");
+            testris->ToggleMode(TM_HELPS);
+        }
 
         CbuiFrameEnd();
     }
