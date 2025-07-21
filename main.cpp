@@ -14,7 +14,6 @@ enum TestrisMode {
     TM_CNT
 };
 
-
 struct Testris {
     TestrisMode mode;
     TestrisMode mode_prev;
@@ -39,6 +38,7 @@ struct Testris {
         }
     }
 };
+
 static Testris _g_testris_state;
 static Testris *testris;
 
@@ -78,9 +78,9 @@ void DoMainScreen() {
     UI_Label("Main Game ...");
 }
 
-void RunProgram() {
-    cbui = CbuiInit();
 
+void RunTestris() {
+    cbui = CbuiInit();
     testris = &_g_testris_state;
 
     while (cbui->running) {
@@ -144,6 +144,6 @@ int main (int argc, char **argv) {
         Test();
     }
     else {
-        RunProgram();
+        RunTestris();
     }
 }
