@@ -24,6 +24,7 @@ struct Grid {
         }
         else {
             g_block_null = {};
+            g_block_null.solid = true;
             return &g_block_null;
         }
     }
@@ -88,54 +89,20 @@ static Testris _g_testris_state;
 static Testris *testris;
 
 
-void FillGridDataRandomly() {
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            Block *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = true;
-            }
-        }
-    }
-}
-
-void FillGridBottomRandomly() {
-    for (s32 y = 16; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            Block *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = false;
-            }
-        }
-    }
-}
-
-
 void UpdateBlocks() {
 
     // fall blocks
+    for (s32 y = -4; y < 0; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            Block *b = grid->GetBlock(y, x);
+            if (b->solid && b->falling) {
+                printf("her\n");
+            }
+
+        }
+    }
+    //for (s32 y = grid->grid_h - 1; y >= -4; --y) {
+    //    for (s32 x = 0; x < grid->grid_w; ++x) {
     for (s32 y = grid->grid_h - 1; y >= 0; --y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
@@ -158,6 +125,67 @@ void UpdateBlocks() {
             }
         }
     }
+}
+
+
+enum BlocksType {
+    BT_LONG,
+    BT_STEP,
+    BT_TEE,
+    BT_BOX,
+
+    BT_CNT
+};
+
+
+void SpawnFallingBlocks() {
+
+    s32 color_selector = RandMinMaxI(0, 3);
+    Color blocks_color;
+    switch (color_selector) {
+    case 0: blocks_color = COLOR_RED; break;
+    case 1: blocks_color = COLOR_GREEN; break;
+    case 2: blocks_color = COLOR_YELLOW; break;
+    case 3: blocks_color = COLOR_BLUE; break;
+    default: assert(1 == 0 && "switch default"); break; }
+
+    BlocksType btpe = (BlocksType) RandMinMaxI(0, 3);
+
+    Block b = {};
+    b.solid = true;
+    b.falling = true;
+    b.color = blocks_color;
+
+    switch (btpe) {
+    case BT_LONG: {
+        grid->SetBlock(-4 + 5, 4, b);
+        grid->SetBlock(-3 + 5, 4, b);
+        grid->SetBlock(-2 + 5, 4, b);
+        grid->SetBlock(-1 + 5, 4, b);
+    } break;
+    case BT_STEP: {
+        grid->SetBlock(-3 + 5, 3, b);
+        grid->SetBlock(-3 + 5, 4, b);
+        grid->SetBlock(-2 + 5, 4, b);
+        grid->SetBlock(-2 + 5, 5, b);
+    } break;
+    case BT_TEE: {
+        grid->SetBlock(-3 + 5, 4, b);
+        grid->SetBlock(-2 + 5, 4, b);
+        grid->SetBlock(-1 + 5, 4, b);
+        grid->SetBlock(-1 + 5, 5, b);
+    } break;
+    case BT_BOX: {
+        grid->SetBlock(-2 + 5, 4, b);
+        grid->SetBlock(-2 + 5, 5, b);
+        grid->SetBlock(-1 + 5, 4, b);
+        grid->SetBlock(-1 + 5, 5, b);
+    } break;
+    default: assert(1 == 0 && "switch default"); break; }
+
+
+    // TODO: randomly mirror the blocks (one of two mirrors)
+    // TODO: randomly rotate the blocks (one of four rotations)
 }
 
 
@@ -210,6 +238,50 @@ void DoMainScreen() {
 }
 
 
+void FillGridDataRandomly() {
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            Block *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
+                block->falling = true;
+            }
+        }
+    }
+}
+
+void FillGridBottomRandomly() {
+    for (s32 y = 16; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            Block *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
+                block->falling = false;
+            }
+        }
+    }
+}
+
 void DoHelpMenu() {
     UI_LayoutExpandCenter();
 
@@ -250,8 +322,10 @@ void RunTestris() {
     testris->mode = TM_MAIN;
     testris->main_timeout = 1;
 
-    //FillGridDataRandomly();
-    FillGridBottomRandomly();
+    FillGridDataRandomly();
+    //FillGridBottomRandomly();
+
+    //SpawnFallingBlocks();
 
 
     while (cbui->running) {
