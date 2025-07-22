@@ -16,14 +16,11 @@ static Block g_block_null; // ZII default return value
 struct Grid {
     s32 grid_w = 10;
     s32 grid_h = 20;
-    //Block data[24][10];
-    Block data[20][10];
-    //bool data[20][10];
+    Block data[24][10];
 
     Block *GetBlock(s32 y, s32 x) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            //return &data[y + 4][x];
-            return &data[y][x];
+        if (y >= -3 && y < grid_h && x >= 0 && x < grid_w) {
+            return &data[y + 4][x];
         }
         else {
             g_block_null = {};
@@ -32,9 +29,8 @@ struct Grid {
     }
 
     void SetBlock(s32 y, s32 x, Block b) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            //data[y + 4][x] = b;
-            data[y][x] = b;
+        if (y >= -3 && y < grid_h && x >= 0 && x < grid_w) {
+            data[y + 4][x] = b;
         }
         else {
             assert(1 == 0 && "SetBlock: out of scope");
@@ -42,10 +38,9 @@ struct Grid {
     }
 
     void ClearBlock(s32 y, s32 x) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            //data[y + 4][x] = {};
-            data[y][x] = {};
-            data[y][x].empty = true;
+        if (y >= -3 && y < grid_h && x >= 0 && x < grid_w) {
+            data[y + 4][x] = {};
+            data[y + 4][x].empty = true;
         }
         else {
             assert(1 == 0 && "SetBlock: out of scope");
@@ -110,8 +105,8 @@ void FillGridDataRandomly() {
 
             block->empty = RandMinMaxI(0, 1) == 1;
             if (block->empty == false) {
-                block->falling = RandMinMaxI(0, 5) < 5;
-                //block->falling = true;
+                //block->falling = RandMinMaxI(0, 5) < 5;
+                block->falling = true;
             }
         }
     }
@@ -125,10 +120,10 @@ void UpdateBlocks() {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
             Block *b = grid->GetBlock(y, x);
-            if (b->falling == true) {
+            if (b->empty == false && b->falling == true) {
 
                 Block *below = grid->GetBlock(y + 1, x);
-                if (b->empty == false && below->empty == true && y < (grid->grid_h - 1)) {
+                if (below->empty == true && y < (grid->grid_h - 1)) {
 
                     grid->SetBlock(y+1, x, *b);
                     grid->ClearBlock(y, x);
@@ -155,11 +150,11 @@ void DoMainScreen() {
     }
     if (testris->main_timeout == 0) {
         UpdateBlocks();
-        //FillGridDataRandomly();
     }
     testris->main_timeout += cbui->dt;
 
 
+    // render
     UI_LayoutExpandCenter();
     Widget *w = UI_LayoutVertical();
     w->features_flg |= WF_EXPAND_VERTICAL;
@@ -232,6 +227,7 @@ void RunTestris() {
 
     // setup the test state
     testris->mode = TM_MAIN;
+    testris->main_timeout = 1;
     FillGridDataRandomly();
 
 
