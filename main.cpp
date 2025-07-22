@@ -39,6 +39,7 @@ enum TestrisMode {
 struct Testris {
     TestrisMode mode;
     TestrisMode mode_prev;
+    f32 main_timeout;
 
     void SetMode(TestrisMode mode_new) {
         mode_prev = mode;
@@ -65,8 +66,39 @@ static Testris _g_testris_state;
 static Testris *testris;
 
 
+void FillGridDataRandomly() {
+    for (s32 i = 0; i < grid->grid_h; ++i) {
+        for (s32 j = 0; j < grid->grid_w; ++j) {
+
+            Block *block = grid->GetBlock(i, j);
+
+            s32 color_selector = RandMinMaxI(0, 5);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            case 4: block->color = COLOR_BLACK; break;
+            default: break; }
+
+            block->falling = false;
+            block->solid = RandMinMaxI(0, 1) == 1;
+        }
+    }
+}
+
 void DoMainScreen() {
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
+
+
+    if (testris->main_timeout >= 500) {
+        testris->main_timeout = 0;
+    }
+    if (testris->main_timeout == 0) {
+        FillGridDataRandomly();
+    }
+    testris->main_timeout += cbui->dt;
+
 
     UI_LayoutExpandCenter();
     Widget *w = UI_LayoutVertical();
@@ -131,36 +163,12 @@ void DoTitleScreen() {
     }
 }
 
-
-void FillGridDataRandomly() {
-    for (s32 i = 0; i < grid->grid_h; ++i) {
-        for (s32 j = 0; j < grid->grid_w; ++j) {
-
-            Block *block = grid->GetBlock(i, j);
-
-            s32 color_selector = RandMinMaxI(0, 5);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            case 4: block->color = COLOR_BLACK; break;
-            default: break; }
-
-            block->falling = false;
-            block->solid = RandMinMaxI(0, 1) == 1;
-        }
-    }
-}
-
-
 void RunTestris() {
     cbui = CbuiInit();
     testris = &_g_testris_state;
     grid = &_grid;
 
     testris->mode = TM_MAIN;
-    FillGridDataRandomly();
 
     while (cbui->running) {
         CbuiFrameStart();
