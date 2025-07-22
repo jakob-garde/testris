@@ -6,20 +6,20 @@
 #include "../../cbui/cbui_includes.h"
 
 
-struct Block {
+struct GridSlot {
     Color color;
     bool solid;
     bool falling;
 };
 
-static Block g_block_null; // ZII default return value
+static GridSlot g_block_null; // ZII default return value
 
 struct Grid {
     s32 grid_w = 10;
     s32 grid_h = 24;
-    Block data[24][10];
+    GridSlot data[24][10];
 
-    Block *GetBlock(s32 y, s32 x) {
+    GridSlot *GetBlock(s32 y, s32 x) {
         if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
             return &data[y][x];
         }
@@ -30,7 +30,7 @@ struct Grid {
         }
     }
 
-    void SetBlock(s32 y, s32 x, Block b) {
+    void SetBlock(s32 y, s32 x, GridSlot b) {
         if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
             data[y][x] = b;
         }
@@ -87,14 +87,14 @@ struct Testris {
 };
 
 
-void UpdateBlocks() {
+void UpdateGrid() {
     for (s32 y = grid->grid_h - 1; y >= 0; --y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
-            Block *b = grid->GetBlock(y, x);
+            GridSlot *b = grid->GetBlock(y, x);
             if (b->solid == true && b->falling == true) {
 
-                Block *below = grid->GetBlock(y + 1, x);
+                GridSlot *below = grid->GetBlock(y + 1, x);
                 if (below->solid == false && y < (grid->grid_h - 1)) {
 
                     grid->SetBlock(y + 1, x, *b);
@@ -108,7 +108,7 @@ void UpdateBlocks() {
     }
 }
 
-enum BlocksType {
+enum BlockType {
     BT_LONG,
     BT_STEP,
     BT_TEE,
@@ -117,7 +117,14 @@ enum BlocksType {
     BT_CNT
 };
 
-void SpawnFallingBlocks() {
+struct Block {
+    BlockType tpe;
+    bool data[4][4]; // 4x4 indices 0..3 x 0..3
+    s32 grid_y; // using index y 1
+    s32 grid_x; // using index x 1
+};
+
+void SpawnFallingBlock() {
 
     s32 color_selector = RandMinMaxI(0, 3);
     Color blocks_color;
@@ -128,9 +135,42 @@ void SpawnFallingBlocks() {
     case 3: blocks_color = COLOR_BLUE; break;
     default: assert(1 == 0 && "switch default"); break; }
 
-    BlocksType btpe = (BlocksType) RandMinMaxI(0, 3);
+    Block block = {};
+    block.tpe = (BlockType) RandMinMaxI(0, 3);
+    block.grid_y = 1; // top
+    block.grid_x = 4; // middle
 
-    Block b = {};
+    switch (block.tpe) {
+    case BT_LONG: {
+        block.data[0][4];
+        block.data[1][4];
+        block.data[2][4];
+        block.data[3][4];
+    } break;
+    case BT_STEP: {
+        block.data[1][3];
+        block.data[1][4];
+        block.data[2][4];
+        block.data[2][5];
+    } break;
+    case BT_TEE: {
+        block.data[0][4];
+        block.data[1][4];
+        block.data[2][4];
+        block.data[3][4];
+        block.data[3][5];
+    } break;
+    case BT_BOX: {
+        block.data[1][4];
+        block.data[1][5];
+        block.data[2][4];
+        block.data[2][5];
+    } break;
+    default: assert(1 == 0 && "switch default"); break; }
+
+
+    /*
+    GridSlot b = {};
     b.solid = true;
     b.falling = true;
     b.color = blocks_color;
@@ -162,6 +202,7 @@ void SpawnFallingBlocks() {
         grid->SetBlock(-1 + 5, 5, b);
     } break;
     default: assert(1 == 0 && "switch default"); break; }
+    */
 
 
     // TODO: randomly mirror the blocks (one of two mirrors)

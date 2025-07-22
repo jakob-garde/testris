@@ -19,7 +19,7 @@ void DoMainScreen() {
         testris->main_timeout = 0;
     }
     if (testris->main_timeout == 0) {
-        UpdateBlocks();
+        UpdateGrid();
     }
     testris->main_timeout += cbui->dt;
 
@@ -35,7 +35,7 @@ void DoMainScreen() {
 
     for (s32 y = 4; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
-            Block *b = grid->GetBlock(y, x);
+            GridSlot *b = grid->GetBlock(y, x);
             if (b->solid == true) {
 
                 Widget *g = UI_Plain();
@@ -54,50 +54,6 @@ void DoMainScreen() {
                 //      wrt. their common parent.
 
                 UI_Pop();
-            }
-        }
-    }
-}
-
-void FillGridDataRandomly() {
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            Block *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = true;
-            }
-        }
-    }
-}
-
-void FillGridBottomRandomly() {
-    for (s32 y = 16; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            Block *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = false;
             }
         }
     }
@@ -132,6 +88,50 @@ void DoTitleScreen() {
     }
 }
 
+void FillGridDataRandomly() {
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            GridSlot *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
+                block->falling = true;
+            }
+        }
+    }
+}
+
+void FillGridBottomRandomly() {
+    for (s32 y = 16; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            GridSlot *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
+                block->falling = false;
+            }
+        }
+    }
+}
+
 void RunTestris() {
     cbui = CbuiInit();
     testris = &_g_testris_state;
@@ -141,7 +141,7 @@ void RunTestris() {
     // setup the test state
     //testris->mode = TM_MAIN;
     //testris->main_timeout = 1;
-    SpawnFallingBlocks();
+    SpawnFallingBlock();
 
 
     while (cbui->running) {
