@@ -8,20 +8,48 @@
 
 struct Block {
     Color color;
-    bool solid;
+    bool empty;
     bool falling;
 };
+static Block g_block_null; // ZII default return value
 
 struct Grid {
     s32 grid_w = 10;
     s32 grid_h = 20;
-    Block data[24][10];
+    //Block data[24][10];
+    Block data[20][10];
+    //bool data[20][10];
 
     Block *GetBlock(s32 y, s32 x) {
-        assert(y >= 0 && y < grid_h);
-        assert(x >= 0 && x < grid_w);
+        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
+            //return &data[y + 4][x];
+            return &data[y][x];
+        }
+        else {
+            g_block_null = {};
+            return &g_block_null;
+        }
+    }
 
-        return &data[y + 4][x];
+    void SetBlock(s32 y, s32 x, Block b) {
+        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
+            //data[y + 4][x] = b;
+            data[y][x] = b;
+        }
+        else {
+            assert(1 == 0 && "SetBlock: out of scope");
+        }
+    }
+
+    void ClearBlock(s32 y, s32 x) {
+        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
+            //data[y + 4][x] = {};
+            data[y][x] = {};
+            data[y][x].empty = true;
+        }
+        else {
+            assert(1 == 0 && "SetBlock: out of scope");
+        }
     }
 };
 
@@ -67,25 +95,56 @@ static Testris *testris;
 
 
 void FillGridDataRandomly() {
-    for (s32 i = 0; i < grid->grid_h; ++i) {
-        for (s32 j = 0; j < grid->grid_w; ++j) {
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
 
-            Block *block = grid->GetBlock(i, j);
+            Block *block = grid->GetBlock(y, x);
 
-            s32 color_selector = RandMinMaxI(0, 5);
+            s32 color_selector = RandMinMaxI(0, 3);
             switch (color_selector) {
             case 0: block->color = COLOR_RED; break;
             case 1: block->color = COLOR_GREEN; break;
             case 2: block->color = COLOR_YELLOW; break;
             case 3: block->color = COLOR_BLUE; break;
-            case 4: block->color = COLOR_BLACK; break;
             default: break; }
 
-            block->falling = false;
-            block->solid = RandMinMaxI(0, 1) == 1;
+            block->empty = RandMinMaxI(0, 1) == 1;
+            if (block->empty == false) {
+                block->falling = RandMinMaxI(0, 5) < 5;
+                //block->falling = true;
+            }
         }
     }
 }
+
+
+void UpdateBlocks() {
+
+    // fall blocks
+    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            Block *b = grid->GetBlock(y, x);
+            if (b->falling == true) {
+
+                Block *below = grid->GetBlock(y + 1, x);
+                if (b->empty == false && below->empty == true && y < (grid->grid_h - 1)) {
+
+                    grid->SetBlock(y+1, x, *b);
+                    grid->ClearBlock(y, x);
+                }
+                else {
+                    b->falling = false;
+                }
+            }
+
+            if (b->falling == false) {
+                b->color = COLOR_GRAY;
+            }
+        }
+    }
+}
+
 
 void DoMainScreen() {
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
@@ -95,7 +154,8 @@ void DoMainScreen() {
         testris->main_timeout = 0;
     }
     if (testris->main_timeout == 0) {
-        FillGridDataRandomly();
+        UpdateBlocks();
+        //FillGridDataRandomly();
     }
     testris->main_timeout += cbui->dt;
 
@@ -108,17 +168,18 @@ void DoMainScreen() {
     w->w = grid_unit_sz * 10;
     w->col_bckgrnd = COLOR_WHITE;
 
-    for (s32 i = 0; i < grid->grid_h; ++i) {
-        for (s32 j = 0; j < grid->grid_w; ++j) {
-            Block *b = grid->GetBlock(i, j);
-            if (b->solid) {
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            Block *b = grid->GetBlock(y, x);
+            if (b->empty == false) {
+
                 Widget *g = UI_Plain();
                 g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
                 g->features_flg |= WF_ABSREL_POSITION;
                 g->w = grid_unit_sz;
                 g->h = grid_unit_sz;
-                g->x0 = j * grid_unit_sz;
-                g->y0 = i * grid_unit_sz;
+                g->x0 = x * grid_unit_sz;
+                g->y0 = y * grid_unit_sz;
                 g->col_border = COLOR_WHITE;
                 g->sz_border = 1;
                 g->col_bckgrnd = b->color;
@@ -168,7 +229,11 @@ void RunTestris() {
     testris = &_g_testris_state;
     grid = &_grid;
 
+
+    // setup the test state
     testris->mode = TM_MAIN;
+    FillGridDataRandomly();
+
 
     while (cbui->running) {
         CbuiFrameStart();
