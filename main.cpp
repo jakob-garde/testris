@@ -6,6 +6,28 @@
 #include "../cbui/cbui_includes.h"
 
 
+struct Block {
+    Color color;
+    bool solid;
+    bool falling;
+};
+
+struct Grid {
+    s32 grid_w = 10;
+    s32 grid_h = 20;
+    Block data[24][10];
+
+    Block *GetBlock(s32 y, s32 x) {
+        assert(y >= 0 && y < grid_h);
+        assert(x >= 0 && x < grid_w);
+
+        return &data[y + 4][x];
+    }
+};
+
+static Grid _grid;
+static Grid *grid;
+
 enum TestrisMode {
     TM_TITLE,
     TM_MAIN,
@@ -45,13 +67,10 @@ static Testris *testris;
 
 void DoMainScreen() {
     UI_LayoutExpandCenter();
-    //UI_Label("Main Game ...");
 
     s32 grid_unit_sz = cbui->plf->height / 20;
 
-    //Widget *w = UI_LayoutVertical();
-    Widget *w = WidgetGetCached("testris_grid_area");
-    TreeBranch(w);
+    Widget *w = UI_LayoutVertical();
     w->frame_touched = cbui->frameno;
     w->features_flg |= WF_EXPAND_VERTICAL;
     w->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
@@ -63,37 +82,26 @@ void DoMainScreen() {
     w->sz_border = 1;
 
 
-    s32 grid_h = 20;
-    s32 grid_w = 10;
-    for (s32 i = 0; i < grid_h; ++i) {
-        for (s32 j = 0; j < grid_w; ++j) {
-            Widget *g = UI_Plain();
-            g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
-            g->features_flg |= WF_ABSREL_POSITION;
-            g->w = grid_unit_sz;
-            g->h = grid_unit_sz;
-            g->x0 = j * grid_unit_sz;
-            g->y0 = i * grid_unit_sz;
+    for (s32 i = 0; i < grid->grid_h; ++i) {
+        for (s32 j = 0; j < grid->grid_w; ++j) {
+            Block *b = grid->GetBlock(i, j);
+            if (b->solid) {
+                Widget *g = UI_Plain();
+                g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+                g->features_flg |= WF_ABSREL_POSITION;
+                g->w = grid_unit_sz;
+                g->h = grid_unit_sz;
+                g->x0 = j * grid_unit_sz;
+                g->y0 = i * grid_unit_sz;
 
-            s32 color_selector = RandMinMaxI(0, 5);
-            switch (color_selector) {
-            case 0: g->col_bckgrnd = COLOR_RED; break;
-            case 1: g->col_bckgrnd = COLOR_GREEN; break;
-            case 2: g->col_bckgrnd = COLOR_YELLOW; break;
-            case 3: g->col_bckgrnd = COLOR_BLUE; break;
-            case 4: g->col_bckgrnd = COLOR_BLACK; break;
-            case 5: g->col_bckgrnd = COLOR_WHITE; break;
-            default: break; }
+                g->col_bckgrnd = b->color;
 
-            // TODO: store the colours in a persistent grid structure:
-            //      We don't need to store it on persistent widgets, although we could
-            //      as an exercise. Reason why: The grid holds model data - which we want
-            //      to operate on using game logics.
+                // TODO: These widget should not be nested by default, necessitating UI_Pop() !
+                //      They should have been siblings, s.t. their abs-rel position is calculated
+                //      wrt. their common parent.
 
-            // TODO: These widget should not be nested by default, necessitating UI_Pop() !
-            //      They should have been siblings, s.t. their abs-rel position is calculated
-            //      wrt. their common parent.
-            UI_Pop();
+                UI_Pop();
+            }
         }
     }
 }
@@ -128,10 +136,36 @@ void DoTitleScreen() {
     }
 }
 
+
+void FillGridDataRandomly() {
+    for (s32 i = 0; i < grid->grid_h; ++i) {
+        for (s32 j = 0; j < grid->grid_w; ++j) {
+
+            Block *block = grid->GetBlock(i, j);
+
+            s32 color_selector = RandMinMaxI(0, 5);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            case 4: block->color = COLOR_BLACK; break;
+            default: break; }
+
+            block->falling = false;
+            block->solid = RandMinMaxI(0, 1) == 1;
+        }
+    }
+}
+
+
 void RunTestris() {
     cbui = CbuiInit();
     testris = &_g_testris_state;
+    grid = &_grid;
+
     testris->mode = TM_MAIN;
+    FillGridDataRandomly();
 
     while (cbui->running) {
         CbuiFrameStart();
