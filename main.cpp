@@ -8,7 +8,7 @@
 
 struct Block {
     Color color;
-    bool empty;
+    bool solid;
     bool falling;
 };
 static Block g_block_null; // ZII default return value
@@ -40,7 +40,6 @@ struct Grid {
     void ClearBlock(s32 y, s32 x) {
         if (y >= -3 && y < grid_h && x >= 0 && x < grid_w) {
             data[y + 4][x] = {};
-            data[y + 4][x].empty = true;
         }
         else {
             assert(1 == 0 && "SetBlock: out of scope");
@@ -103,10 +102,31 @@ void FillGridDataRandomly() {
             case 3: block->color = COLOR_BLUE; break;
             default: break; }
 
-            block->empty = RandMinMaxI(0, 1) == 1;
-            if (block->empty == false) {
-                //block->falling = RandMinMaxI(0, 5) < 5;
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
                 block->falling = true;
+            }
+        }
+    }
+}
+
+void FillGridBottomRandomly() {
+    for (s32 y = 16; y < grid->grid_h; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            Block *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
+            if (block->solid == true) {
+                block->falling = false;
             }
         }
     }
@@ -120,10 +140,10 @@ void UpdateBlocks() {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
             Block *b = grid->GetBlock(y, x);
-            if (b->empty == false && b->falling == true) {
+            if (b->solid == true && b->falling == true) {
 
                 Block *below = grid->GetBlock(y + 1, x);
-                if (below->empty == true && y < (grid->grid_h - 1)) {
+                if (below->solid == false && y < (grid->grid_h - 1)) {
 
                     grid->SetBlock(y+1, x, *b);
                     grid->ClearBlock(y, x);
@@ -133,7 +153,7 @@ void UpdateBlocks() {
                 }
             }
 
-            if (b->falling == false) {
+            if (b->solid == true && b->falling == false) {
                 b->color = COLOR_GRAY;
             }
         }
@@ -166,7 +186,7 @@ void DoMainScreen() {
     for (s32 y = 0; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
             Block *b = grid->GetBlock(y, x);
-            if (b->empty == false) {
+            if (b->solid == false) {
 
                 Widget *g = UI_Plain();
                 g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
@@ -225,10 +245,13 @@ void RunTestris() {
     grid = &_grid;
 
 
+
     // setup the test state
     testris->mode = TM_MAIN;
     testris->main_timeout = 1;
-    FillGridDataRandomly();
+
+    //FillGridDataRandomly();
+    FillGridBottomRandomly();
 
 
     while (cbui->running) {
