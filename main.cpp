@@ -66,21 +66,15 @@ static Testris *testris;
 
 
 void DoMainScreen() {
+    f32 grid_unit_sz = cbui->plf->height / 20.0f;
+
     UI_LayoutExpandCenter();
-
-    s32 grid_unit_sz = cbui->plf->height / 20;
-
     Widget *w = UI_LayoutVertical();
-    w->frame_touched = cbui->frameno;
     w->features_flg |= WF_EXPAND_VERTICAL;
     w->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
     w->h = cbui->plf->height;
     w->w = grid_unit_sz * 10;
-
     w->col_bckgrnd = COLOR_WHITE;
-    w->col_border = COLOR_BLACK;
-    w->sz_border = 1;
-
 
     for (s32 i = 0; i < grid->grid_h; ++i) {
         for (s32 j = 0; j < grid->grid_w; ++j) {
@@ -93,7 +87,8 @@ void DoMainScreen() {
                 g->h = grid_unit_sz;
                 g->x0 = j * grid_unit_sz;
                 g->y0 = i * grid_unit_sz;
-
+                g->col_border = COLOR_WHITE;
+                g->sz_border = 1;
                 g->col_bckgrnd = b->color;
 
                 // TODO: These widget should not be nested by default, necessitating UI_Pop() !
