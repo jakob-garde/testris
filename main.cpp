@@ -139,13 +139,9 @@ void RunTestris() {
 
 
     // setup the test state
-    testris->mode = TM_MAIN;
-    testris->main_timeout = 1;
-
-    FillGridDataRandomly();
-    //FillGridBottomRandomly();
-
-    //SpawnFallingBlocks();
+    //testris->mode = TM_MAIN;
+    //testris->main_timeout = 1;
+    SpawnFallingBlocks();
 
 
     while (cbui->running) {

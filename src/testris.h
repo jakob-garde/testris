@@ -87,9 +87,7 @@ struct Testris {
 };
 
 
-
 void UpdateBlocks() {
-
     for (s32 y = grid->grid_h - 1; y >= 0; --y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
@@ -106,16 +104,9 @@ void UpdateBlocks() {
                     b->falling = false;
                 }
             }
-
-            /*
-            if (b->solid == true && b->falling == false) {
-                b->color = COLOR_GRAY;
-            }
-            */
         }
     }
 }
-
 
 enum BlocksType {
     BT_LONG,
@@ -125,7 +116,6 @@ enum BlocksType {
 
     BT_CNT
 };
-
 
 void SpawnFallingBlocks() {
 
@@ -159,6 +149,7 @@ void SpawnFallingBlocks() {
         grid->SetBlock(-2 + 5, 5, b);
     } break;
     case BT_TEE: {
+        grid->SetBlock(-4 + 5, 4, b);
         grid->SetBlock(-3 + 5, 4, b);
         grid->SetBlock(-2 + 5, 4, b);
         grid->SetBlock(-1 + 5, 4, b);
