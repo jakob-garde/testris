@@ -15,16 +15,16 @@ void DoMainScreen() {
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
 
-    if (testris->main_timeout >= 500) {
+    if (testris->main_timeout >= 200) {
         testris->main_timeout = 0;
     }
     if (testris->main_timeout == 0) {
-        UpdateGrid();
+        Update();
     }
     testris->main_timeout += cbui->dt;
 
 
-    // render
+    // render the grid
     UI_LayoutExpandCenter();
     Widget *w = UI_LayoutVertical();
     w->features_flg |= WF_EXPAND_VERTICAL;
@@ -52,6 +52,31 @@ void DoMainScreen() {
                 // TODO: These widget should not be nested by default, necessitating UI_Pop() !
                 //      They should have been siblings, s.t. their abs-rel position is calculated
                 //      wrt. their common parent.
+
+                UI_Pop();
+            }
+        }
+    }
+    
+    // render the falling block
+    for (s32 y = 0; y < 4; ++y) {
+        for (s32 x = 0; x < 4; ++x) {
+
+            bool do_fill = grid->falling.data[y][x];
+            s32 yy = y - 4 + grid->falling.grid_y;
+            s32 xx = x + grid->falling.grid_x;
+            if (do_fill && yy >= 0 && yy < grid->grid_h - 4 && xx >= 0 && x < grid->grid_w) {
+
+                Widget *g = UI_Plain();
+                g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+                g->features_flg |= WF_ABSREL_POSITION;
+                g->w = grid_unit_sz;
+                g->h = grid_unit_sz;
+                g->x0 = xx * grid_unit_sz;
+                g->y0 = yy * grid_unit_sz;
+                g->col_border = COLOR_WHITE;
+                g->sz_border = 1;
+                g->col_bckgrnd = grid->falling.color;
 
                 UI_Pop();
             }
@@ -139,8 +164,8 @@ void RunTestris() {
 
 
     // setup the test state
-    //testris->mode = TM_MAIN;
-    //testris->main_timeout = 1;
+    testris->mode = TM_MAIN;
+    testris->main_timeout = 1;
     SpawnFallingBlock();
 
 
