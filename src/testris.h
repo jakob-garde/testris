@@ -107,18 +107,15 @@ struct Testris {
     }
 };
 
-void Update() {
 
-    // TODO: fall the block
-    // TODO: check for collisions with the grid
-
+bool BlockDoesNotCollide(Block block) {
     bool can_fall = true;
 
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
-            bool do_fill = grid->falling.data[y][x];
-            s32 yy = y + grid->falling.grid_y;
-            s32 xx = x + grid->falling.grid_x;
+            bool do_fill = block.data[y][x];
+            s32 yy = y + block.grid_y;
+            s32 xx = x + block.grid_x;
 
             if (do_fill) {
                 if (yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w) {
@@ -136,6 +133,13 @@ void Update() {
         }
     }
 
+    return can_fall;
+}
+
+
+void Update() {
+
+    bool can_fall = BlockDoesNotCollide(grid->falling);
     if (can_fall) {
         grid->falling.grid_y += 1;
     }
