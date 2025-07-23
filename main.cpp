@@ -136,7 +136,7 @@ void FillGridDataRandomly() {
 }
 
 void FillGridBottomRandomly() {
-    for (s32 y = 16; y < grid->grid_h; ++y) {
+    for (s32 y = 16 + 4; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
             GridSlot *block = grid->GetBlock(y, x);
@@ -166,7 +166,7 @@ void RunTestris() {
     // setup the test state
     testris->mode = TM_MAIN;
     testris->main_timeout = 1;
-    //FillGridBottomRandomly();
+    FillGridBottomRandomly();
     SpawnFallingBlock();
 
 
