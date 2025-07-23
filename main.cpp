@@ -166,6 +166,7 @@ void RunTestris() {
     // setup the test state
     testris->mode = TM_MAIN;
     testris->main_timeout = 1;
+    //FillGridBottomRandomly();
     SpawnFallingBlock();
 
 

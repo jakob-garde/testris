@@ -112,8 +112,50 @@ void Update() {
     // TODO: fall the block
     // TODO: check for collisions with the grid
 
-    if (true) {
+    bool can_fall = true;
+
+    for (s32 y = 0; y < 4; ++y) {
+        for (s32 x = 0; x < 4; ++x) {
+            bool do_fill = grid->falling.data[y][x];
+            s32 yy = y + grid->falling.grid_y;
+            s32 xx = x + grid->falling.grid_x;
+
+            if (do_fill) {
+                if (yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w) {
+
+                    // collide with the grid
+                    GridSlot *slot = grid->GetBlock(yy + 1, xx);
+                    if (slot->solid) {
+                        can_fall = false;
+                    }
+                }
+                else {
+                    can_fall = false;
+                }
+            }
+        }
+    }
+
+    if (can_fall) {
         grid->falling.grid_y += 1;
+    }
+    else {
+        GridSlot slot = {};
+        slot.color = grid->falling.color;
+        slot.solid = true;
+
+        // solidify as grid slots
+        for (s32 y = 0; y < 4; ++y) {
+            for (s32 x = 0; x < 4; ++x) {
+                if (grid->falling.data[y][x]) {
+                    s32 yy = y + grid->falling.grid_y;
+                    s32 xx = x + grid->falling.grid_x;
+                    grid->SetBlock(yy, xx, slot);
+
+                }
+            }
+        }
+        grid->falling = {};
     }
 
     // TODO: eliminate line
