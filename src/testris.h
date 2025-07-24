@@ -13,7 +13,8 @@ enum BlockType {
     BT_STEP,
     BT_TEE,
     BT_BOX,
-
+    BT_ELL,
+ 
     BT_CNT
 };
 
@@ -133,35 +134,58 @@ bool BlockGridCollides(Block block) {
 
 Block BlockRotate(Block b) {
     Block r = b;
-    r.data[0][0] = b.data[3][0];
-    r.data[0][1] = b.data[2][0];
-    r.data[0][2] = b.data[1][0];
-    r.data[0][3] = b.data[0][0];
 
-    r.data[1][0] = b.data[3][1];
-    r.data[1][1] = b.data[2][1];
-    r.data[1][2] = b.data[1][1];
-    r.data[1][3] = b.data[0][1];
+    if (b.tpe == BT_LONG) {
+        r.data[0][0] = b.data[3][0];
+        r.data[0][1] = b.data[2][0];
+        r.data[0][2] = b.data[1][0];
+        r.data[0][3] = b.data[0][0];
 
-    r.data[2][0] = b.data[3][2];
-    r.data[2][1] = b.data[2][2];
-    r.data[2][2] = b.data[1][2];
-    r.data[2][3] = b.data[0][2];
+        r.data[1][0] = b.data[3][1];
+        r.data[1][1] = b.data[2][1];
+        r.data[1][2] = b.data[1][1];
+        r.data[1][3] = b.data[0][1];
 
-    r.data[3][0] = b.data[3][3];
-    r.data[3][1] = b.data[2][3];
-    r.data[3][2] = b.data[1][3];
-    r.data[3][3] = b.data[0][3];
+        r.data[2][0] = b.data[3][2];
+        r.data[2][1] = b.data[2][2];
+        r.data[2][2] = b.data[1][2];
+        r.data[2][3] = b.data[0][2];
+
+        r.data[3][0] = b.data[3][3];
+        r.data[3][1] = b.data[2][3];
+        r.data[3][2] = b.data[1][3];
+        r.data[3][3] = b.data[0][3];
+    }
+    else if (b.tpe == BT_BOX) {
+        // we don't need to rotate it
+    }
+    else {
+        r.data[0][0] = b.data[2][0];
+        r.data[0][1] = b.data[1][0];
+        r.data[0][2] = b.data[0][0];
+
+        r.data[1][0] = b.data[2][1];
+        r.data[1][1] = b.data[1][1];
+        r.data[1][2] = b.data[0][1];
+
+        r.data[2][0] = b.data[2][2];
+        r.data[2][1] = b.data[1][2];
+        r.data[2][2] = b.data[0][2];
+
+        r.data[3][0] = b.data[2][3];
+        r.data[3][1] = b.data[1][3];
+        r.data[3][2] = b.data[0][3];
+    }
+
     return r;
 }
 
 Block BlockMirrorX(Block b) {
     Block m = b;
+    // only mirror the first 3 columns
     for (s32 y = 0; y < 4; ++y) {
-        m.data[y][0] = b.data[y][3];
-        m.data[y][1] = b.data[y][2];
-        m.data[y][2] = b.data[y][1];
-        m.data[y][3] = b.data[y][0];
+        m.data[y][0] = b.data[y][2];
+        m.data[y][2] = b.data[y][0];
     }
     return m;
 }
@@ -257,7 +281,7 @@ void BlockSpawn() {
     default: assert(1 == 0 && "switch default"); break; }
 
     Block block = {};
-    block.tpe = (BlockType) RandMinMaxI(1, 4);
+    block.tpe = (BlockType) RandMinMaxI(1, 5);
     block.grid_y = 0;
     block.grid_x = 3;
     block.color = blocks_color;
@@ -276,17 +300,22 @@ void BlockSpawn() {
         block.data[2][2] = true;
     } break;
     case BT_TEE: {
-        block.data[0][1] = true;
         block.data[1][1] = true;
+        block.data[2][0] = true;
         block.data[2][1] = true;
-        block.data[3][1] = true;
-        block.data[3][2] = true;
+        block.data[2][2] = true;
     } break;
     case BT_BOX: {
         block.data[1][1] = true;
         block.data[1][2] = true;
         block.data[2][1] = true;
         block.data[2][2] = true;
+    } break;
+    case BT_ELL: {
+        block.data[0][0] = true;
+        block.data[1][0] = true;
+        block.data[2][0] = true;
+        block.data[2][1] = true;
     } break;
     default: assert(1 == 0 && "switch default"); break; }
 
