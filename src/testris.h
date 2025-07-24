@@ -277,7 +277,7 @@ Block BlockSpawn() {
     switch (color_selector) {
     case 0: blocks_color = COLOR_RED; break;
     case 1: blocks_color = COLOR_GREEN; break;
-    case 2: blocks_color = COLOR_YELLOW; break;
+    case 2: blocks_color = COLOR_YELLOW2; break;
     case 3: blocks_color = COLOR_BLUE; break;
     default: assert(1 == 0 && "switch default"); break; }
 

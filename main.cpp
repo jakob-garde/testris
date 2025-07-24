@@ -90,14 +90,14 @@ void RenderMainScreen() {
     }
 
     // render grid framing lines
-    s16 ax = w_grid->x0 - 5;
+    s16 ax = w_grid->x0 - 0.3f * grid_unit_sz;
     s16 ay = w_grid->y0;
-    s16 bx = w_grid->x0 - 5;
+    s16 bx = w_grid->x0 - 0.3f * grid_unit_sz;
     s16 by = w_grid->y0 + w_grid->h;
     RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
-    ax = w_grid->x0 + w_grid->w + 5;
+    ax = w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz;
     ay = w_grid->y0;
-    bx = w_grid->x0 + w_grid->w + 5;
+    bx = w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz;
     by = w_grid->y0 + w_grid->h;
     RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
     
@@ -129,8 +129,8 @@ void RenderMainScreen() {
 
 
     // render the next block
-    s32 offset_x = -110;
-    s32 offset_y = 30;
+    s32 offset_x = - 5 * grid_unit_sz;
+    s32 offset_y = grid_unit_sz;
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
 
@@ -249,7 +249,7 @@ void FillGridBottomRandomly() {
             switch (color_selector) {
             case 0: block->color = COLOR_RED; break;
             case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
+            case 2: block->color = COLOR_YELLOW2; break;
             case 3: block->color = COLOR_BLUE; break;
             default: assert(1 == 0 && "switch default"); break; }
 
