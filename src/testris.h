@@ -30,7 +30,7 @@ struct Block {
 struct GridSlot {
     Color color;
     bool solid;
-    bool falling;
+    f32 animate;
 };
 
 static GridSlot g_block_null; // ZII default return value
@@ -243,9 +243,6 @@ void BlockFall() {
         }
         grid->falling = {};
     }
-
-    // TODO: eliminate line
-    // TODO: fall the blocks above once elimination animation is done
 }
 
 void BlockSpawn() {
@@ -260,7 +257,7 @@ void BlockSpawn() {
     default: assert(1 == 0 && "switch default"); break; }
 
     Block block = {};
-    block.tpe = (BlockType) RandMinMaxI(0, 3);
+    block.tpe = (BlockType) RandMinMaxI(1, 4);
     block.grid_y = 0;
     block.grid_x = 3;
     block.color = blocks_color;
@@ -309,24 +306,40 @@ void BlockSpawn() {
     grid->falling = block;
 }
 
-void GridFallCells() {
+void GridLineEliminateStartAnimation() {
 
     for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+        bool row_full = true;
+
+        // detect empty row
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            row_full = row_full && grid->GetBlock(y, x)->solid;
+        }
+
+        // eliminate empty row
+        if (row_full) {
+            for (s32 x = 0; x < grid->grid_w; ++x) {
+                GridSlot *b = grid->GetBlock(y, x);
+                if (b->animate == 0) {
+                    b->animate = 1;
+                }
+            }
+        }
+    }
+}
+
+void GridLineEliminate(s32 line) {
+
+    for (s32 y = line - 1; y >= 0; --y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
             GridSlot *b = grid->GetBlock(y, x);
-            if (b->solid == true && b->falling == true) {
 
-                GridSlot *below = grid->GetBlock(y + 1, x);
-                if (below->solid == false && y < (grid->grid_h - 1)) {
-
-                    grid->SetBlock(y + 1, x, *b);
-                    grid->ClearBlock(y, x);
-                }
-                else if (below->solid == true) {
-                    b->falling = false;
-                }
+            if (b->solid == true) {
+                grid->SetBlock(y + 1, x, *b);
+                grid->ClearBlock(y, x);
             }
+
         }
     }
 }

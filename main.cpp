@@ -11,9 +11,47 @@ static Testris _g_testris_state;
 static Testris *testris;
 
 
+void GridUpdate() {
+    s32 y_eliminated = -1;
+
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+
+        bool line_eliminated = true;
+
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            GridSlot *b = grid->GetBlock(y, x);
+            line_eliminated = line_eliminated && b->animate > 200.0f;
+
+            if (b->animate > 0 && b->animate < 60.0f) {
+                b->color = COLOR_BLACK;
+            }
+            else if (b->animate > 0 && b->animate < 120.0f) {
+                b->color = COLOR_WHITE;
+            }
+            else if (b->animate > 0 && b->animate < 200.0f) {
+                b->color = COLOR_BLACK;
+            }
+            else if (b->animate > 0.6f) {
+                b->solid = false;
+                b->animate = 0;
+
+            }
+
+            if (b->animate > 0) {
+                b->animate += cbui->dt;
+            }
+        }
+
+        if (line_eliminated) {
+            GridLineEliminate(y);
+        }
+    }
+}
+
 void DoMainScreen() {
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
+    GridUpdate();
 
     if (testris->main_timeout >= 400) {
         testris->main_timeout = 0;
@@ -24,6 +62,7 @@ void DoMainScreen() {
         }
         else {
             BlockFall();
+            GridLineEliminateStartAnimation();
         }
     }
     testris->main_timeout += cbui->dt;
@@ -65,6 +104,7 @@ void DoMainScreen() {
                 g->col_border = COLOR_WHITE;
                 g->sz_border = 1;
                 g->col_bckgrnd = b->color;
+
 
                 // TODO: These widget should not be nested by default, necessitating UI_Pop() !
                 //      They should have been siblings, s.t. their abs-rel position is calculated
@@ -145,9 +185,6 @@ void FillGridDataRandomly() {
             default: assert(1 == 0 && "switch default"); break; }
 
             block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = true;
-            }
         }
     }
 }
@@ -167,9 +204,6 @@ void FillGridBottomRandomly() {
             default: assert(1 == 0 && "switch default"); break; }
 
             block->solid = RandMinMaxI(0, 1) == 1;
-            if (block->solid == true) {
-                block->falling = false;
-            }
         }
     }
 }
