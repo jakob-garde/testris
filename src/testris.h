@@ -42,6 +42,7 @@ struct Grid {
     GridSlot data[24][10];
 
     Block falling;
+    Block next;
 
     GridSlot *GetBlock(s32 y, s32 x) {
         if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
@@ -269,7 +270,7 @@ void BlockFall() {
     }
 }
 
-void BlockSpawn() {
+Block BlockSpawn() {
 
     s32 color_selector = RandMinMaxI(0, 3);
     Color blocks_color;
@@ -294,22 +295,22 @@ void BlockSpawn() {
         block.data[3][1] = true;
     } break;
     case BT_STEP: {
-        block.data[1][0] = true;
-        block.data[1][1] = true;
-        block.data[2][1] = true;
-        block.data[2][2] = true;
-    } break;
-    case BT_TEE: {
-        block.data[1][1] = true;
-        block.data[2][0] = true;
-        block.data[2][1] = true;
-        block.data[2][2] = true;
-    } break;
-    case BT_BOX: {
+        block.data[0][0] = true;
+        block.data[0][1] = true;
         block.data[1][1] = true;
         block.data[1][2] = true;
-        block.data[2][1] = true;
-        block.data[2][2] = true;
+    } break;
+    case BT_TEE: {
+        block.data[0][1] = true;
+        block.data[1][0] = true;
+        block.data[1][1] = true;
+        block.data[1][2] = true;
+    } break;
+    case BT_BOX: {
+        block.data[0][0] = true;
+        block.data[0][1] = true;
+        block.data[1][0] = true;
+        block.data[1][1] = true;
     } break;
     case BT_ELL: {
         block.data[0][0] = true;
@@ -318,8 +319,6 @@ void BlockSpawn() {
         block.data[2][1] = true;
     } break;
     default: assert(1 == 0 && "switch default"); break; }
-
-    printf("falling type: %d\n", block.tpe);
 
     // randomly mirror the blocks (one of two mirrors)
     if (RandMinMaxI(0, 1) == 1) {
@@ -332,7 +331,7 @@ void BlockSpawn() {
         block = BlockRotate(block);
     }
 
-    grid->falling = block;
+    return block;
 }
 
 void GridLineEliminateStartAnimation() {

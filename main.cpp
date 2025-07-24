@@ -48,39 +48,10 @@ void GridUpdate() {
     }
 }
 
-void DoMainScreen() {
+void RenderMainScreen() {
+    // render the grid
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
-    GridUpdate();
-
-    if (testris->main_timeout >= 400) {
-        testris->main_timeout = 0;
-    }
-    if (testris->main_timeout == 0) {
-        if (grid->falling.tpe == BT_UNINITIALIZED) {
-            BlockSpawn();
-        }
-        else {
-            BlockFall();
-            GridLineEliminateStartAnimation();
-        }
-    }
-    testris->main_timeout += cbui->dt;
-
-    if (GetChar('a')) {
-        BlockLeftIfAble();
-    }
-    if (GetChar('d')) {
-        BlockRightIfAble();
-    }
-    if (GetChar('w')) {
-        BlockRotateIfAble();
-    }
-    if (GetChar('s')) {
-        BlockFall();
-    }
-
-    // render the grid
     UI_LayoutExpandCenter();
     Widget *w_grid  = WidgetGetCached("testris_grid");
     TreeBranch(w_grid);
@@ -156,6 +127,68 @@ void DoMainScreen() {
         }
     }
 
+
+    // render the next block
+    s32 offset_x = -110;
+    s32 offset_y = 30;
+    for (s32 y = 0; y < 4; ++y) {
+        for (s32 x = 0; x < 4; ++x) {
+
+            bool do_fill = grid->next.data[y][x];
+            if (do_fill) {
+
+                Widget *g = UI_Plain();
+                g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+                g->features_flg |= WF_ABSREL_POSITION;
+                g->w = grid_unit_sz;
+                g->h = grid_unit_sz;
+                g->x0 = x * grid_unit_sz + offset_x;
+                g->y0 = y * grid_unit_sz + offset_y;
+                g->col_border = COLOR_WHITE;
+                g->sz_border = 1;
+                g->col_bckgrnd = grid->next.color;
+
+                UI_Pop();
+            }
+        }
+    }
+}
+
+void DoMainScreen() {
+    GridUpdate();
+
+    if (testris->main_timeout >= 400) {
+        testris->main_timeout = 0;
+    }
+    if (testris->main_timeout == 0) {
+        if (grid->falling.tpe == BT_UNINITIALIZED) {
+            if (grid->next.tpe == BT_UNINITIALIZED) {
+                grid->falling = BlockSpawn();
+            }
+            else {
+                grid->falling = grid->next;
+            }
+            grid->next = BlockSpawn();
+        }
+        BlockFall();
+        GridLineEliminateStartAnimation();
+    }
+    testris->main_timeout += cbui->dt;
+
+    if (GetChar('a')) {
+        BlockLeftIfAble();
+    }
+    if (GetChar('d')) {
+        BlockRightIfAble();
+    }
+    if (GetChar('w')) {
+        BlockRotateIfAble();
+    }
+    if (GetChar('s')) {
+        BlockFall();
+    }
+
+    RenderMainScreen();
 }
 
 void DoHelpMenu() {
@@ -233,7 +266,6 @@ void RunTestris() {
 
     // setup the test state
     testris->mode = TM_MAIN;
-    testris->main_timeout = 1;
     FillGridBottomRandomly();
     BlockSpawn();
 
