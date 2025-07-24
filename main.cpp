@@ -82,12 +82,15 @@ void DoMainScreen() {
 
     // render the grid
     UI_LayoutExpandCenter();
-    Widget *w = UI_LayoutVertical();
-    w->features_flg |= WF_EXPAND_VERTICAL;
-    w->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
-    w->h = cbui->plf->height;
-    w->w = grid_unit_sz * 10;
-    w->col_bckgrnd = COLOR_WHITE;
+    Widget *w_grid  = WidgetGetCached("testris_grid");
+    TreeBranch(w_grid);
+    w_grid->frame_touched = cbui->frameno;
+    w_grid->features_flg |= WF_LAYOUT_VERTICAL;
+    w_grid->features_flg |= WF_EXPAND_VERTICAL;
+    w_grid->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+    w_grid->h = cbui->plf->height;
+    w_grid->w = grid_unit_sz * 10;
+    w_grid->col_bckgrnd = COLOR_WHITE;
 
     for (s32 y = 4; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
@@ -114,6 +117,19 @@ void DoMainScreen() {
             }
         }
     }
+
+    // render grid framing lines
+    s16 ax = w_grid->x0 - 5;
+    s16 ay = w_grid->y0;
+    s16 bx = w_grid->x0 - 5;
+    s16 by = w_grid->y0 + w_grid->h;
+    RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
+    ax = w_grid->x0 + w_grid->w + 5;
+    ay = w_grid->y0;
+    bx = w_grid->x0 + w_grid->w + 5;
+    by = w_grid->y0 + w_grid->h;
+    RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
+    
     
     // render the falling block
     for (s32 y = 0; y < 4; ++y) {
@@ -139,6 +155,7 @@ void DoMainScreen() {
             }
         }
     }
+
 }
 
 void DoHelpMenu() {
