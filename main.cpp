@@ -15,14 +15,31 @@ void DoMainScreen() {
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
 
-    if (testris->main_timeout >= 200) {
+    if (testris->main_timeout >= 400) {
         testris->main_timeout = 0;
     }
     if (testris->main_timeout == 0) {
-        Update();
+        if (grid->falling.tpe == BT_UNINITIALIZED) {
+            BlockSpawn();
+        }
+        else {
+            BlockFall();
+        }
     }
     testris->main_timeout += cbui->dt;
 
+    if (GetChar('a')) {
+        BlockLeftIfAble();
+    }
+    if (GetChar('d')) {
+        BlockRightIfAble();
+    }
+    if (GetChar('w')) {
+        BlockRotateIfAble();
+    }
+    if (GetChar('s')) {
+        BlockFall();
+    }
 
     // render the grid
     UI_LayoutExpandCenter();
@@ -167,7 +184,7 @@ void RunTestris() {
     testris->mode = TM_MAIN;
     testris->main_timeout = 1;
     FillGridBottomRandomly();
-    SpawnFallingBlock();
+    BlockSpawn();
 
 
     while (cbui->running) {

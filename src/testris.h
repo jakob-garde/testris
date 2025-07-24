@@ -7,6 +7,8 @@
 
 
 enum BlockType {
+    BT_UNINITIALIZED,
+
     BT_LONG,
     BT_STEP,
     BT_TEE,
@@ -108,19 +110,101 @@ struct Testris {
 };
 
 
-bool BlockDoesNotCollide(Block block) {
+bool BlockGridCollides(Block block) {
+    for (s32 y = 0; y < 4; ++y) {
+        for (s32 x = 0; x < 4; ++x) {
+
+            if (block.data[y][x]) {
+                s32 yy = y + block.grid_y;
+                s32 xx = x + block.grid_x;
+
+                bool in_range = yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w;
+                bool collides = !in_range || grid->GetBlock(yy, xx)->solid;
+
+                if (collides) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+Block BlockRotate(Block b) {
+    Block r = b;
+    r.data[0][0] = b.data[3][0];
+    r.data[0][1] = b.data[2][0];
+    r.data[0][2] = b.data[1][0];
+    r.data[0][3] = b.data[0][0];
+
+    r.data[1][0] = b.data[3][1];
+    r.data[1][1] = b.data[2][1];
+    r.data[1][2] = b.data[1][1];
+    r.data[1][3] = b.data[0][1];
+
+    r.data[2][0] = b.data[3][2];
+    r.data[2][1] = b.data[2][2];
+    r.data[2][2] = b.data[1][2];
+    r.data[2][3] = b.data[0][2];
+
+    r.data[3][0] = b.data[3][3];
+    r.data[3][1] = b.data[2][3];
+    r.data[3][2] = b.data[1][3];
+    r.data[3][3] = b.data[0][3];
+    return r;
+}
+
+Block BlockMirrorX(Block b) {
+    Block m = b;
+    for (s32 y = 0; y < 4; ++y) {
+        m.data[y][0] = b.data[y][3];
+        m.data[y][1] = b.data[y][2];
+        m.data[y][2] = b.data[y][1];
+        m.data[y][3] = b.data[y][0];
+    }
+    return m;
+}
+
+void BlockRotateIfAble() {
+    Block rot = BlockRotate(grid->falling);
+    if (BlockGridCollides(rot) == false) {
+        grid->falling = rot;
+    }
+}
+
+void BlockLeftIfAble() {
+    Block left = grid->falling;
+    left.grid_x -= 1;
+    if (BlockGridCollides(left) == false) {
+        grid->falling = left;
+    }
+}
+
+void BlockRightIfAble() {
+    Block right = grid->falling;
+    right.grid_x += 1;
+    if (BlockGridCollides(right) == false) {
+        grid->falling = right;
+    }
+}
+
+bool BlockCanFall(Block block) {
     bool can_fall = true;
 
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
-            bool do_fill = block.data[y][x];
+            bool is_block = block.data[y][x];
             s32 yy = y + block.grid_y;
             s32 xx = x + block.grid_x;
 
-            if (do_fill) {
+            if (is_block) {
                 if (yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w) {
 
-                    // collide with the grid
+
+                    // TODO: refactor using the BlockCollides() function
+
+
                     GridSlot *slot = grid->GetBlock(yy + 1, xx);
                     if (slot->solid) {
                         can_fall = false;
@@ -136,10 +220,9 @@ bool BlockDoesNotCollide(Block block) {
     return can_fall;
 }
 
+void BlockFall() {
 
-void Update() {
-
-    bool can_fall = BlockDoesNotCollide(grid->falling);
+    bool can_fall = BlockCanFall(grid->falling);
     if (can_fall) {
         grid->falling.grid_y += 1;
     }
@@ -155,7 +238,6 @@ void Update() {
                     s32 yy = y + grid->falling.grid_y;
                     s32 xx = x + grid->falling.grid_x;
                     grid->SetBlock(yy, xx, slot);
-
                 }
             }
         }
@@ -166,28 +248,7 @@ void Update() {
     // TODO: fall the blocks above once elimination animation is done
 }
 
-void FallGridCells() {
-    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            GridSlot *b = grid->GetBlock(y, x);
-            if (b->solid == true && b->falling == true) {
-
-                GridSlot *below = grid->GetBlock(y + 1, x);
-                if (below->solid == false && y < (grid->grid_h - 1)) {
-
-                    grid->SetBlock(y + 1, x, *b);
-                    grid->ClearBlock(y, x);
-                }
-                else if (below->solid == true) {
-                    b->falling = false;
-                }
-            }
-        }
-    }
-}
-
-void SpawnFallingBlock() {
+void BlockSpawn() {
 
     s32 color_selector = RandMinMaxI(0, 3);
     Color blocks_color;
@@ -234,10 +295,40 @@ void SpawnFallingBlock() {
 
     printf("falling type: %d\n", block.tpe);
 
-    // TODO: randomly mirror the blocks (one of two mirrors)
-    // TODO: randomly rotate the blocks (one of four rotations)
+    // randomly mirror the blocks (one of two mirrors)
+    if (RandMinMaxI(0, 1) == 1) {
+        block = BlockMirrorX(block);
+    }
+
+    // randomly rotate the blocks (one of four rotations)
+    s32 rotations = RandMinMaxI(0, 3);
+    for (s32 i = 0; i < rotations; ++i) {
+        block = BlockRotate(block);
+    }
 
     grid->falling = block;
+}
+
+void GridFallCells() {
+
+    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            GridSlot *b = grid->GetBlock(y, x);
+            if (b->solid == true && b->falling == true) {
+
+                GridSlot *below = grid->GetBlock(y + 1, x);
+                if (below->solid == false && y < (grid->grid_h - 1)) {
+
+                    grid->SetBlock(y + 1, x, *b);
+                    grid->ClearBlock(y, x);
+                }
+                else if (below->solid == true) {
+                    b->falling = false;
+                }
+            }
+        }
+    }
 }
 
 
