@@ -89,7 +89,8 @@ struct Testris {
     u64 mode_t_start;
     TestrisMode mode;
     TestrisMode mode_prev;
-    f32 main_timeout;
+    f32 t_fall;
+    f32 t_fall_interval;
 
     void SetMode(TestrisMode mode_new, f32 t_start) {
         mode_t_start = t_start;
@@ -102,6 +103,11 @@ struct Testris {
 static Testris _g_testris_state;
 static Testris *testris;
 
+
+f32 TimeSinceModeStart_ms() {
+    f32 t_delta_ms = (cbui->t_framestart - testris->mode_t_start) / 1000;
+    return t_delta_ms;
+}
 
 void GridLineEliminate(s32 line) {
 
@@ -119,7 +125,7 @@ void GridLineEliminate(s32 line) {
     }
 }
 
-void GridUpdate() {
+void UpdateGrid() {
     s32 y_eliminated = -1;
 
     for (s32 y = 0; y < grid->grid_h; ++y) {

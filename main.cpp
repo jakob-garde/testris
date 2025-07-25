@@ -111,6 +111,21 @@ f32 RenderMainScreen() {
     return w_grid->w + 0.6f * grid_unit_sz;
 }
 
+
+void UpdateGameSpeed() {
+    if (testris->t_fall_interval == 0) {
+        testris->t_fall_interval = 400;
+    }
+    f32 t_was = testris->t_fall_interval;
+
+    // TODO: impl. the escalating speed
+
+    if (t_was != testris->t_fall_interval) {
+        printf("Game speed set to: %f ms\n", testris->t_fall_interval);
+    }
+}
+
+
 void DoMainScreen() {
     // spawn
     if (grid->falling.tpe == BT_UNINITIALIZED) {
@@ -124,16 +139,17 @@ void DoMainScreen() {
     }
 
     // check filled lines
-    GridUpdate();
+    UpdateGrid();
+    UpdateGameSpeed();
 
     // auto-fall
-    if (testris->main_timeout >= 400) {
-        testris->main_timeout = 0;
+    if (testris->t_fall >= testris->t_fall_interval) {
+        testris->t_fall = 0;
     }
-    if (testris->main_timeout == 0) {
+    if (testris->t_fall == 0) {
         BlockFall();
     }
-    testris->main_timeout += cbui->dt;
+    testris->t_fall += cbui->dt;
 
     // controls
     if (GetChar('a')) {
@@ -155,6 +171,7 @@ void DoMainScreen() {
     // render
     RenderMainScreen();
 }
+
 
 void DoGameOver() {
     f32 grid_visual_width = RenderMainScreen();
@@ -179,9 +196,7 @@ void DoGameOver() {
 
     //if (GetSpace() && ((cbui->TimeSince(testris->mode_t_start)) > 1000.0f) ) {
     if (GetSpace()) {
-        f32 t_delta_ms = (cbui->t_framestart - testris->mode_t_start) / 1000;
-
-        if (t_delta_ms > 300.0f) {
+        if (TimeSinceModeStart_ms() > 300.0f) {
             *grid = {};
             FillGridBottomRandomly();
 
