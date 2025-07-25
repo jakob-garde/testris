@@ -152,16 +152,16 @@ void DoMainScreen() {
     testris->t_fall += cbui->dt;
 
     // controls
-    if (GetChar('a')) {
+    if (GetChar('a') || GetLeft()) {
         BlockLeftIfAble();
     }
-    if (GetChar('d')) {
+    if (GetChar('d') || GetRight()) {
         BlockRightIfAble();
     }
-    if (GetChar('w')) {
+    if (GetChar('w') || GetUp()) {
         BlockRotateIfAble();
     }
-    if (GetChar('s')) {
+    if (GetChar('s') || GetDown()) {
         BlockFall();
     }
     if (GetSpace()) {
