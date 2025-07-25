@@ -190,7 +190,7 @@ void DoGameOver() {
 
     TreeBranch(w);
 
-    SetFontSize(FS_24);
+    SetFontSize(FS_36);
     Widget *q = UI_Label("GAME OVER");
 
 
@@ -222,7 +222,7 @@ void DoTitleScreen() {
 
     TreeBranch(w);
 
-    SetFontSize(FS_24);
+    SetFontSize(FS_36);
     UI_Label("");
     UI_Label("TESTRIS");
     SetFontSize(FS_18);
@@ -234,8 +234,10 @@ void DoTitleScreen() {
 }
 
 
-void RunTestris() {
+void RunTestris(bool start_in_fullscreen) {
     cbui = CbuiInit();
+    // TODO: put as an option to the init call // along with w/h
+    if (start_in_fullscreen) { PlafGlfwToggleFullscreen(cbui->plf); }
     testris = &_g_testris_state;
     grid = &_grid;
 
@@ -275,5 +277,6 @@ int main (int argc, char **argv) {
     BaselayerAssertVersion(0, 2, 3);
     CbuiAssertVersion(0, 2, 1);
 
-    RunTestris();
+    bool start_in_fullscreen = CLAContainsArg("--fullscreen", argc, argv);
+    RunTestris(start_in_fullscreen);
 }
