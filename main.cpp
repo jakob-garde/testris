@@ -7,48 +7,7 @@
 #include "src/testris.h"
 
 
-static Testris _g_testris_state;
-static Testris *testris;
-
-
-void GridUpdate() {
-    s32 y_eliminated = -1;
-
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-
-        bool line_eliminated = true;
-
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-            GridSlot *b = grid->GetBlock(y, x);
-            line_eliminated = line_eliminated && b->animate > 200.0f;
-
-            if (b->animate > 0 && b->animate < 60.0f) {
-                b->color = COLOR_BLACK;
-            }
-            else if (b->animate > 0 && b->animate < 120.0f) {
-                b->color = COLOR_WHITE;
-            }
-            else if (b->animate > 0 && b->animate < 200.0f) {
-                b->color = COLOR_BLACK;
-            }
-            else if (b->animate > 0.6f) {
-                b->solid = false;
-                b->animate = 0;
-
-            }
-
-            if (b->animate > 0) {
-                b->animate += cbui->dt;
-            }
-        }
-
-        if (line_eliminated) {
-            GridLineEliminate(y);
-        }
-    }
-}
-
-void RenderMainScreen() {
+f32 RenderMainScreen() {
     // render the grid
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
@@ -56,11 +15,13 @@ void RenderMainScreen() {
     Widget *w_grid  = WidgetGetCached("testris_grid");
     TreeBranch(w_grid);
     w_grid->frame_touched = cbui->frameno;
+    w_grid->features_flg |= WF_ABSREL_POSITION;
     w_grid->features_flg |= WF_LAYOUT_VERTICAL;
     w_grid->features_flg |= WF_EXPAND_VERTICAL;
     w_grid->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
     w_grid->h = cbui->plf->height;
     w_grid->w = grid_unit_sz * 10;
+    w_grid->x0 = (cbui->plf->width - w_grid->w) / 2.0f;
     w_grid->col_bckgrnd = COLOR_WHITE;
 
     for (s32 y = 4; y < grid->grid_h; ++y) {
@@ -79,26 +40,21 @@ void RenderMainScreen() {
                 g->sz_border = 1;
                 g->col_bckgrnd = b->color;
 
-
-                // TODO: These widget should not be nested by default, necessitating UI_Pop() !
-                //      They should have been siblings, s.t. their abs-rel position is calculated
-                //      wrt. their common parent.
-
                 UI_Pop();
             }
         }
     }
 
     // render grid framing lines
-    s16 ax = w_grid->x0 - 0.3f * grid_unit_sz;
-    s16 ay = w_grid->y0;
-    s16 bx = w_grid->x0 - 0.3f * grid_unit_sz;
-    s16 by = w_grid->y0 + w_grid->h;
+    s16 ax = round( w_grid->x0 - 0.3f * grid_unit_sz );
+    s16 ay = round( w_grid->y0 );
+    s16 bx = round( w_grid->x0 - 0.3f * grid_unit_sz );
+    s16 by = round(w_grid->y0 + w_grid->h );
     RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
-    ax = w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz;
-    ay = w_grid->y0;
-    bx = w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz;
-    by = w_grid->y0 + w_grid->h;
+    ax = round( w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz );
+    ay = round( w_grid->y0 );
+    bx = round( w_grid->x0 + w_grid->w + 0.3f * grid_unit_sz );
+    by = round( w_grid->y0 + w_grid->h );
     RenderLineRGBA(cbui->plf->image_buffer, cbui->plf->width, cbui->plf->height, ax, ay, bx, by, COLOR_GRAY_60);
     
     
@@ -127,7 +83,6 @@ void RenderMainScreen() {
         }
     }
 
-
     // render the next block
     s32 offset_x = - 5 * grid_unit_sz;
     s32 offset_y = grid_unit_sz;
@@ -152,29 +107,35 @@ void RenderMainScreen() {
             }
         }
     }
+
+    return w_grid->w + 0.6f * grid_unit_sz;
 }
 
 void DoMainScreen() {
+    // spawn
+    if (grid->falling.tpe == BT_UNINITIALIZED) {
+        if (grid->next.tpe == BT_UNINITIALIZED) {
+            grid->falling = BlockSpawn();
+        }
+        else {
+            grid->falling = grid->next;
+        }
+        grid->next = BlockSpawn();
+    }
+
+    // check filled lines
     GridUpdate();
 
+    // auto-fall
     if (testris->main_timeout >= 400) {
         testris->main_timeout = 0;
     }
     if (testris->main_timeout == 0) {
-        if (grid->falling.tpe == BT_UNINITIALIZED) {
-            if (grid->next.tpe == BT_UNINITIALIZED) {
-                grid->falling = BlockSpawn();
-            }
-            else {
-                grid->falling = grid->next;
-            }
-            grid->next = BlockSpawn();
-        }
         BlockFall();
-        GridLineEliminateStartAnimation();
     }
     testris->main_timeout += cbui->dt;
 
+    // controls
     if (GetChar('a')) {
         BlockLeftIfAble();
     }
@@ -187,76 +148,76 @@ void DoMainScreen() {
     if (GetChar('s')) {
         BlockFall();
     }
+    if (GetSpace()) {
+        while (BlockFall());
+    }
 
+    // render
     RenderMainScreen();
 }
 
-void DoHelpMenu() {
-    UI_LayoutExpandCenter();
+void DoGameOver() {
+    f32 grid_visual_width = RenderMainScreen();
 
-    bool close;
-    UI_CoolPopUp(470, 165, 20, &close);
-    if (close) testris->SetModePrev();
+    UI_Pop();
+    Widget *w = WidgetGetCached("game_over_panel");
+    w->frame_touched = cbui->frameno;
+    w->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+    w->features_flg |= WF_LAYOUT_CENTER;
 
-    UI_Label("Rotate Block   Up");
-    UI_Label("Move Block     Left/Right/Down");
-    UI_Label("");
-    UI_Label("Help           F1");
-    UI_Label("Fullscreen     F10");
-    UI_Label("Exit           Esc");
+    w->w = grid_visual_width - 2;
+    w->h = 0.4* w->w;
+    w->sz_border = 0;
+    w->col_bckgrnd = COLOR_WHITE;
+    w->col_border = COLOR_GRAY_50;
+
+    TreeBranch(w);
+
+    SetFontSize(FS_24);
+    Widget *q = UI_Label("GAME OVER");
+
+
+    //if (GetSpace() && ((cbui->TimeSince(testris->mode_t_start)) > 1000.0f) ) {
+    if (GetSpace()) {
+        f32 t_delta_ms = (cbui->t_framestart - testris->mode_t_start) / 1000;
+
+        if (t_delta_ms > 300.0f) {
+            *grid = {};
+            FillGridBottomRandomly();
+
+            testris->SetMode(TM_MAIN, cbui->t_framestart);
+        }
+    }
 }
 
 void DoTitleScreen() {
-    UI_LayoutExpandCenter();
-    Widget *vert = UI_LayoutVertical(true);
+    f32 grid_visual_width = RenderMainScreen();
 
-    SetFontSize(FS_48);
-    Widget *lbl_1 = UI_Label("Welcome to Testris");
+    UI_Pop();
+    Widget *w = WidgetGetCached("game_over_panel");
+    w->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
+    w->features_flg |= WF_LAYOUT_VERTICAL;
+    w->features_flg |= WF_ALIGN_CENTER;
+
+    w->w = grid_visual_width - 2;
+    w->h = 0.4* w->w;
+    w->sz_border = 0;
+    w->col_bckgrnd = COLOR_WHITE;
+    w->col_border = COLOR_GRAY_50;
+
+    TreeBranch(w);
+
     SetFontSize(FS_24);
-    Widget *lbl_2 = UI_Label("(press space to start)");
+    UI_Label("");
+    UI_Label("TESTRIS");
+    SetFontSize(FS_18);
+    UI_Label("[l/r/u/d space]");
 
     if (GetSpace()) {
-        testris->SetMode(TM_MAIN);
+        testris->SetMode(TM_MAIN, cbui->t_framestart);
     }
 }
 
-void FillGridDataRandomly() {
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            GridSlot *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-        }
-    }
-}
-
-void FillGridBottomRandomly() {
-    for (s32 y = 16 + 4; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            GridSlot *block = grid->GetBlock(y, x);
-
-            s32 color_selector = RandMinMaxI(0, 3);
-            switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW2; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
-
-            block->solid = RandMinMaxI(0, 1) == 1;
-        }
-    }
-}
 
 void RunTestris() {
     cbui = CbuiInit();
@@ -265,7 +226,6 @@ void RunTestris() {
 
 
     // setup the test state
-    testris->mode = TM_MAIN;
     FillGridBottomRandomly();
     BlockSpawn();
 
@@ -282,24 +242,11 @@ void RunTestris() {
                 DoMainScreen();
             } break;
 
-            case TM_HELPS : {
-                DoHelpMenu();
-            } break;
-
-            case 3 : {
-                //
-            } break;
-
-            case 4 : {
-                //
+            case TM_GAMEOVER : {
+                DoGameOver();
             } break;
 
             default: break;
-        }
-
-        if (GetFKey(1)) {
-            printf("toggling ...\n");
-            testris->ToggleMode(TM_HELPS);
         }
 
         CbuiFrameEnd();

@@ -80,37 +80,80 @@ static Grid *grid;
 enum TestrisMode {
     TM_TITLE,
     TM_MAIN,
-    TM_HELPS,
+    TM_GAMEOVER,
 
     TM_CNT
 };
 
 struct Testris {
+    u64 mode_t_start;
     TestrisMode mode;
     TestrisMode mode_prev;
     f32 main_timeout;
 
-    void SetMode(TestrisMode mode_new) {
+    void SetMode(TestrisMode mode_new, f32 t_start) {
+        mode_t_start = t_start;
         mode_prev = mode;
         mode = mode_new;
     }
-
-    void SetModePrev() {
-        TestrisMode swap = mode_prev;
-        mode_prev = mode;
-        mode = swap;
-    }
-
-    void ToggleMode(TestrisMode mode_toggle) {
-        if (mode == mode_toggle) {
-            SetModePrev();
-        }
-        else {
-            SetMode(mode_toggle);
-        }
-    }
 };
 
+
+static Testris _g_testris_state;
+static Testris *testris;
+
+
+void GridLineEliminate(s32 line) {
+
+    for (s32 y = line - 1; y >= 0; --y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            GridSlot *b = grid->GetBlock(y, x);
+
+            if (b->solid == true) {
+                grid->SetBlock(y + 1, x, *b);
+                grid->ClearBlock(y, x);
+            }
+
+        }
+    }
+}
+
+void GridUpdate() {
+    s32 y_eliminated = -1;
+
+    for (s32 y = 0; y < grid->grid_h; ++y) {
+
+        bool line_eliminated = true;
+
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            GridSlot *b = grid->GetBlock(y, x);
+            line_eliminated = line_eliminated && b->animate > 200.0f;
+
+            if (b->animate > 0 && b->animate < 60.0f) {
+                b->color = COLOR_BLACK;
+            }
+            else if (b->animate > 0 && b->animate < 120.0f) {
+                b->color = COLOR_WHITE;
+            }
+            else if (b->animate > 0 && b->animate < 200.0f) {
+                b->color = COLOR_BLACK;
+            }
+            else if (b->animate > 0.6f) {
+                b->solid = false;
+                b->animate = 0;
+            }
+
+            if (b->animate > 0) {
+                b->animate += cbui->dt;
+            }
+        }
+
+        if (line_eliminated) {
+            GridLineEliminate(y);
+        }
+    }
+}
 
 bool BlockGridCollides(Block block) {
     for (s32 y = 0; y < 4; ++y) {
@@ -245,11 +288,13 @@ bool BlockCanFall(Block block) {
     return can_fall;
 }
 
-void BlockFall() {
+bool BlockFall() {
+    bool result = false;
 
     bool can_fall = BlockCanFall(grid->falling);
     if (can_fall) {
         grid->falling.grid_y += 1;
+        result = true;
     }
     else {
         GridSlot slot = {};
@@ -266,8 +311,34 @@ void BlockFall() {
                 }
             }
         }
+
+        if (grid->falling.grid_y < 4) {
+            testris->SetMode(TM_GAMEOVER, cbui->t_framestart);
+        }
+
         grid->falling = {};
     }
+
+    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+        bool row_full = true;
+
+        // detect empty row
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            row_full = row_full && grid->GetBlock(y, x)->solid;
+        }
+
+        // eliminate empty row
+        if (row_full) {
+            for (s32 x = 0; x < grid->grid_w; ++x) {
+                GridSlot *b = grid->GetBlock(y, x);
+                if (b->animate == 0) {
+                    b->animate = 1;
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 Block BlockSpawn() {
@@ -283,7 +354,7 @@ Block BlockSpawn() {
 
     Block block = {};
     block.tpe = (BlockType) RandMinMaxI(1, 5);
-    block.grid_y = 0;
+    block.grid_y = 1;
     block.grid_x = 3;
     block.color = blocks_color;
 
@@ -334,43 +405,42 @@ Block BlockSpawn() {
     return block;
 }
 
-void GridLineEliminateStartAnimation() {
-
-    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
-        bool row_full = true;
-
-        // detect empty row
+void FillGridDataRandomly() {
+    for (s32 y = 0; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
-            row_full = row_full && grid->GetBlock(y, x)->solid;
-        }
 
-        // eliminate empty row
-        if (row_full) {
-            for (s32 x = 0; x < grid->grid_w; ++x) {
-                GridSlot *b = grid->GetBlock(y, x);
-                if (b->animate == 0) {
-                    b->animate = 1;
-                }
-            }
+            GridSlot *block = grid->GetBlock(y, x);
+
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
+
+            block->solid = RandMinMaxI(0, 1) == 1;
         }
     }
 }
 
-void GridLineEliminate(s32 line) {
-
-    for (s32 y = line - 1; y >= 0; --y) {
+void FillGridBottomRandomly() {
+    for (s32 y = 16 + 4; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
-            GridSlot *b = grid->GetBlock(y, x);
+            GridSlot *block = grid->GetBlock(y, x);
 
-            if (b->solid == true) {
-                grid->SetBlock(y + 1, x, *b);
-                grid->ClearBlock(y, x);
-            }
+            s32 color_selector = RandMinMaxI(0, 3);
+            switch (color_selector) {
+            case 0: block->color = COLOR_RED; break;
+            case 1: block->color = COLOR_GREEN; break;
+            case 2: block->color = COLOR_YELLOW2; break;
+            case 3: block->color = COLOR_BLUE; break;
+            default: assert(1 == 0 && "switch default"); break; }
 
+            block->solid = RandMinMaxI(0, 1) == 1;
         }
     }
 }
-
 
 #endif
