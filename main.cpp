@@ -118,16 +118,7 @@ void UpdateTime() {
         testris->t_fall = 0;
     }
 
-    if (testris->t_fall_interval == 0) {
-        testris->t_fall_interval = 400;
-    }
-    f32 t_was = testris->t_fall_interval;
-
-    // TODO: impl. the escalating speed
-
-    if (t_was != testris->t_fall_interval) {
-        printf("Game speed set to: %f ms\n", testris->t_fall_interval);
-    }
+    testris->t_fall_interval = 400;
 }
 
 
@@ -184,7 +175,6 @@ void DoGameOver() {
     Widget *q = UI_Label("GAME OVER");
 
 
-    //if (GetSpace() && ((cbui->TimeSince(testris->mode_t_start)) > 1000.0f) ) {
     if (GetSpace()) {
         if (TimeSinceModeStart_ms() > 300.0f) {
             ClearGridTopAndMiddle();

@@ -31,7 +31,7 @@ struct Block {
 struct GridSlot {
     Color color;
     bool solid;
-    f32 animate;
+    f32 blinking;
 };
 
 static GridSlot g_block_null; // ZII default return value
@@ -87,15 +87,15 @@ enum TestrisMode {
 };
 
 struct Testris {
-    u64 mode_t_start;
     TestrisMode mode;
     TestrisMode mode_prev;
     f32 t_fall;
     f32 t_fall_interval;
     f32 t_animate_interval = 100;
+    f32 t_mode_start;
 
     void SetMode(TestrisMode mode_new, f32 t_start) {
-        mode_t_start = t_start;
+        t_mode_start = t_start;
         mode_prev = mode;
         mode = mode_new;
     }
@@ -107,7 +107,7 @@ static Testris *testris;
 
 
 f32 TimeSinceModeStart_ms() {
-    f32 t_delta_ms = (cbui->t_framestart - testris->mode_t_start) / 1000;
+    f32 t_delta_ms = (cbui->t_framestart - testris->t_mode_start) / 1000;
     return t_delta_ms;
 }
 
@@ -118,24 +118,24 @@ void UpdateGridState() {
 
         for (s32 x = 0; x < grid->grid_w; ++x) {
             GridSlot *b = grid->GetBlock(y, x);
-            line_eliminated = line_eliminated && b->animate > 200.0f;
+            line_eliminated = line_eliminated && b->blinking > testris->t_animate_interval * 3;
 
-            if (b->animate > 0 && b->animate < 60.0f) {
+            if (b->blinking > 0 && b->blinking < testris->t_animate_interval) {
                 b->color = COLOR_BLACK;
             }
-            else if (b->animate > 0 && b->animate < 120.0f) {
+            else if (b->blinking > 0 && b->blinking < testris->t_animate_interval * 2) {
                 b->color = COLOR_WHITE;
             }
-            else if (b->animate > 0 && b->animate < 200.0f) {
+            else if (b->blinking > 0 && b->blinking < testris->t_animate_interval * 3) {
                 b->color = COLOR_BLACK;
             }
-            else if (b->animate > 0.6f) {
+            else if (b->blinking > 0.6f) {
                 b->solid = false;
-                b->animate = 0;
+                b->blinking = 0;
             }
 
-            if (b->animate > 0) {
-                b->animate += cbui->dt;
+            if (b->blinking > 0) {
+                b->blinking += cbui->dt;
             }
         }
 
@@ -362,23 +362,22 @@ bool BlockFallOrFreeze() {
         grid->next = BlockCreate();
     }
 
-    // find lines to render - could be moved to updategridstate?
+    // find full rows
     for (s32 y = grid->grid_h - 1; y >= 0; --y) {
         bool row_full = true;
-
-        // detect empty row
         for (s32 x = 0; x < grid->grid_w; ++x) {
             row_full = row_full && grid->GetBlock(y, x)->solid;
         }
 
-        // eliminate empty row
         if (row_full) {
             grid->pause_falling = true;
 
             for (s32 x = 0; x < grid->grid_w; ++x) {
                 GridSlot *b = grid->GetBlock(y, x);
-                if (b->animate == 0) {
-                    b->animate = 1;
+
+                // start blinking sequence
+                if (b->blinking == 0) {
+                    b->blinking = 1;
                 }
             }
         }
