@@ -7,7 +7,7 @@
 #include "src/testris.h"
 
 
-f32 RenderMainScreen() {
+f32 RenderGame() {
     // render the grid
     f32 grid_unit_sz = cbui->plf->height / 20.0f;
 
@@ -112,7 +112,12 @@ f32 RenderMainScreen() {
 }
 
 
-void UpdateGameSpeed() {
+void UpdateTime() {
+    testris->t_fall += cbui->dt;
+    if (testris->t_fall >= testris->t_fall_interval) {
+        testris->t_fall = 0;
+    }
+
     if (testris->t_fall_interval == 0) {
         testris->t_fall_interval = 400;
     }
@@ -127,54 +132,39 @@ void UpdateGameSpeed() {
 
 
 void DoMainScreen() {
-    // spawn
-    if (grid->falling.tpe == BT_UNINITIALIZED) {
-        if (grid->next.tpe == BT_UNINITIALIZED) {
-            grid->falling = BlockSpawn();
-        }
-        else {
-            grid->falling = grid->next;
-        }
-        grid->next = BlockSpawn();
-    }
-
-    // check filled lines
-    UpdateGrid();
-    UpdateGameSpeed();
-
-    // auto-fall
-    if (testris->t_fall >= testris->t_fall_interval) {
-        testris->t_fall = 0;
-    }
-    if (testris->t_fall == 0) {
-        BlockFall();
-    }
-    testris->t_fall += cbui->dt;
+    UpdateTime();
+    UpdateGridState();
 
     // controls
-    if (GetChar('a') || GetLeft()) {
-        BlockLeftIfAble();
-    }
-    if (GetChar('d') || GetRight()) {
-        BlockRightIfAble();
-    }
     if (GetChar('w') || GetUp()) {
         BlockRotateIfAble();
     }
-    if (GetChar('s') || GetDown()) {
-        BlockFall();
+    else if (GetChar('a') || GetLeft()) {
+        BlockLeftIfAble();
     }
-    if (GetSpace()) {
-        while (BlockFall());
+    else if (GetChar('d') || GetRight()) {
+        BlockRightIfAble();
+    }
+
+    else if (GetChar('s') || GetDown()) {
+        BlockFallOrFreeze();
+    }
+    else if (GetSpace()) {
+        while (BlockFallOrFreeze());
+    }
+
+    // auto-fall
+    else if (testris->t_fall == 0) {
+        BlockFallOrFreeze();
     }
 
     // render
-    RenderMainScreen();
+    RenderGame();
 }
 
 
 void DoGameOver() {
-    f32 grid_visual_width = RenderMainScreen();
+    f32 grid_visual_width = RenderGame();
 
     UI_Pop();
     Widget *w = WidgetGetCached("game_over_panel");
@@ -197,8 +187,11 @@ void DoGameOver() {
     //if (GetSpace() && ((cbui->TimeSince(testris->mode_t_start)) > 1000.0f) ) {
     if (GetSpace()) {
         if (TimeSinceModeStart_ms() > 300.0f) {
-            *grid = {};
+            ClearGridTopAndMiddle();
             FillGridBottomRandomly();
+
+            grid->falling = BlockCreate();
+            grid->next = BlockCreate();
 
             testris->SetMode(TM_MAIN, cbui->t_framestart);
         }
@@ -206,7 +199,7 @@ void DoGameOver() {
 }
 
 void DoTitleScreen() {
-    f32 grid_visual_width = RenderMainScreen();
+    f32 grid_visual_width = RenderGame();
 
     UI_Pop();
     Widget *w = WidgetGetCached("game_over_panel");
@@ -229,6 +222,9 @@ void DoTitleScreen() {
     UI_Label("[l/r/u/d space]");
 
     if (GetSpace()) {
+        grid->falling = BlockCreate();
+        grid->next = BlockCreate();
+
         testris->SetMode(TM_MAIN, cbui->t_framestart);
     }
 }
@@ -238,14 +234,12 @@ void RunTestris(bool start_in_fullscreen) {
     cbui = CbuiInit();
     // TODO: put as an option to the init call // along with w/h
     if (start_in_fullscreen) { PlafGlfwToggleFullscreen(cbui->plf); }
+
+    _g_testris_state = {};
     testris = &_g_testris_state;
     grid = &_grid;
 
-
-    // setup the test state
     FillGridBottomRandomly();
-    BlockSpawn();
-
 
     while (cbui->running) {
         CbuiFrameStart();

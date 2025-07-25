@@ -14,7 +14,7 @@ enum BlockType {
     BT_TEE,
     BT_BOX,
     BT_ELL,
- 
+
     BT_CNT
 };
 
@@ -43,6 +43,7 @@ struct Grid {
 
     Block falling;
     Block next;
+    bool pause_falling;
 
     GridSlot *GetBlock(s32 y, s32 x) {
         if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
@@ -91,6 +92,7 @@ struct Testris {
     TestrisMode mode_prev;
     f32 t_fall;
     f32 t_fall_interval;
+    f32 t_animate_interval = 100;
 
     void SetMode(TestrisMode mode_new, f32 t_start) {
         mode_t_start = t_start;
@@ -109,27 +111,9 @@ f32 TimeSinceModeStart_ms() {
     return t_delta_ms;
 }
 
-void GridLineEliminate(s32 line) {
-
-    for (s32 y = line - 1; y >= 0; --y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-
-            GridSlot *b = grid->GetBlock(y, x);
-
-            if (b->solid == true) {
-                grid->SetBlock(y + 1, x, *b);
-                grid->ClearBlock(y, x);
-            }
-
-        }
-    }
-}
-
-void UpdateGrid() {
-    s32 y_eliminated = -1;
+void UpdateGridState() {
 
     for (s32 y = 0; y < grid->grid_h; ++y) {
-
         bool line_eliminated = true;
 
         for (s32 x = 0; x < grid->grid_w; ++x) {
@@ -156,12 +140,21 @@ void UpdateGrid() {
         }
 
         if (line_eliminated) {
-            GridLineEliminate(y);
+            for (s32 z = y - 1; z >= 0; --z) {
+                for (s32 x = 0; x < grid->grid_w; ++x) {
+                    GridSlot *b = grid->GetBlock(z, x);
+
+                    grid->SetBlock(z + 1, x, *b);
+                    grid->ClearBlock(z, x);
+                }
+            }
+
+            grid->pause_falling = false;
         }
     }
 }
 
-bool BlockGridCollides(Block block) {
+bool BlockCollides(Block block) {
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
 
@@ -242,7 +235,7 @@ Block BlockMirrorX(Block b) {
 
 void BlockRotateIfAble() {
     Block rot = BlockRotate(grid->falling);
-    if (BlockGridCollides(rot) == false) {
+    if (BlockCollides(rot) == false) {
         grid->falling = rot;
     }
 }
@@ -250,7 +243,7 @@ void BlockRotateIfAble() {
 void BlockLeftIfAble() {
     Block left = grid->falling;
     left.grid_x -= 1;
-    if (BlockGridCollides(left) == false) {
+    if (BlockCollides(left) == false) {
         grid->falling = left;
     }
 }
@@ -258,96 +251,12 @@ void BlockLeftIfAble() {
 void BlockRightIfAble() {
     Block right = grid->falling;
     right.grid_x += 1;
-    if (BlockGridCollides(right) == false) {
+    if (BlockCollides(right) == false) {
         grid->falling = right;
     }
 }
 
-bool BlockCanFall(Block block) {
-    bool can_fall = true;
-
-    for (s32 y = 0; y < 4; ++y) {
-        for (s32 x = 0; x < 4; ++x) {
-            bool is_block = block.data[y][x];
-            s32 yy = y + block.grid_y;
-            s32 xx = x + block.grid_x;
-
-            if (is_block) {
-                if (yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w) {
-
-
-                    // TODO: refactor using the BlockCollides() function
-
-
-                    GridSlot *slot = grid->GetBlock(yy + 1, xx);
-                    if (slot->solid) {
-                        can_fall = false;
-                    }
-                }
-                else {
-                    can_fall = false;
-                }
-            }
-        }
-    }
-
-    return can_fall;
-}
-
-bool BlockFall() {
-    bool result = false;
-
-    bool can_fall = BlockCanFall(grid->falling);
-    if (can_fall) {
-        grid->falling.grid_y += 1;
-        result = true;
-    }
-    else {
-        GridSlot slot = {};
-        slot.color = grid->falling.color;
-        slot.solid = true;
-
-        // solidify as grid slots
-        for (s32 y = 0; y < 4; ++y) {
-            for (s32 x = 0; x < 4; ++x) {
-                if (grid->falling.data[y][x]) {
-                    s32 yy = y + grid->falling.grid_y;
-                    s32 xx = x + grid->falling.grid_x;
-                    grid->SetBlock(yy, xx, slot);
-                }
-            }
-        }
-
-        if (grid->falling.grid_y < 4) {
-            testris->SetMode(TM_GAMEOVER, cbui->t_framestart);
-        }
-
-        grid->falling = {};
-    }
-
-    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
-        bool row_full = true;
-
-        // detect empty row
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-            row_full = row_full && grid->GetBlock(y, x)->solid;
-        }
-
-        // eliminate empty row
-        if (row_full) {
-            for (s32 x = 0; x < grid->grid_w; ++x) {
-                GridSlot *b = grid->GetBlock(y, x);
-                if (b->animate == 0) {
-                    b->animate = 1;
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-Block BlockSpawn() {
+Block BlockCreate() {
 
     s32 color_selector = RandMinMaxI(0, 3);
     Color blocks_color;
@@ -411,7 +320,74 @@ Block BlockSpawn() {
     return block;
 }
 
-void FillGridDataRandomly() {
+bool BlockFallOrFreeze() {
+    Block test = grid->falling;
+    test.grid_y += 1;
+    bool can_fall = ! BlockCollides(test);
+
+    if (can_fall) {
+        grid->falling.grid_y += 1;
+    }
+
+    else {
+        GridSlot slot = {};
+        slot.color = grid->falling.color;
+        slot.solid = true;
+
+        // solidify into the grid
+        for (s32 y = 0; y < 4; ++y) {
+            for (s32 x = 0; x < 4; ++x) {
+                if (grid->falling.data[y][x]) {
+                    s32 yy = y + grid->falling.grid_y;
+                    s32 xx = x + grid->falling.grid_x;
+
+                    grid->SetBlock(yy, xx, slot);
+                }
+            }
+        }
+
+        if (grid->falling.grid_y < 4) {
+            testris->SetMode(TM_GAMEOVER, cbui->t_framestart);
+        }
+
+        // spawn
+        if (grid->next.tpe == BT_UNINITIALIZED) {
+            grid->falling = BlockCreate();
+        }
+        else {
+            grid->falling = grid->next;
+        }
+
+        grid->falling = grid->next;
+        grid->next = BlockCreate();
+    }
+
+    // find lines to render - could be moved to updategridstate?
+    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+        bool row_full = true;
+
+        // detect empty row
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+            row_full = row_full && grid->GetBlock(y, x)->solid;
+        }
+
+        // eliminate empty row
+        if (row_full) {
+            grid->pause_falling = true;
+
+            for (s32 x = 0; x < grid->grid_w; ++x) {
+                GridSlot *b = grid->GetBlock(y, x);
+                if (b->animate == 0) {
+                    b->animate = 1;
+                }
+            }
+        }
+    }
+
+    return can_fall;
+}
+
+void FillGridRandomly() {
     for (s32 y = 0; y < grid->grid_h; ++y) {
         for (s32 x = 0; x < grid->grid_w; ++x) {
 
@@ -448,5 +424,18 @@ void FillGridBottomRandomly() {
         }
     }
 }
+
+void ClearGridTopAndMiddle() {
+    for (s32 y = 0; y < 20; ++y) {
+        for (s32 x = 0; x < grid->grid_w; ++x) {
+
+            GridSlot *block = grid->GetBlock(y, x);
+            *block = {};
+        }
+    }
+}
+
+
+
 
 #endif
