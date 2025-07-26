@@ -28,8 +28,9 @@ f32 RenderGame() {
         for (s32 x = 0; x < grid->grid_w; ++x) {
             GridSlot *b = grid->GetBlock(y, x);
             if (b->solid == true) {
+                Widget *g = WidgetGetNew();
+                TreeSibling(g);
 
-                Widget *g = UI_Plain();
                 g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
                 g->features_flg |= WF_ABSREL_POSITION;
                 g->w = grid_unit_sz;
@@ -39,8 +40,6 @@ f32 RenderGame() {
                 g->col_border = COLOR_WHITE;
                 g->sz_border = 1;
                 g->col_bckgrnd = b->color;
-
-                UI_Pop();
             }
         }
     }
