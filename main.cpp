@@ -2,8 +2,8 @@
 
 
 #include "lib/jg_baselayer.h"
-//#include "lib/jg_cbui.h"
-#include "../cbui/cbui_includes.h"
+#include "lib/jg_cbui.h"
+//#include "../cbui/cbui_includes.h"
 #include "src/testris.h"
 
 
@@ -221,9 +221,7 @@ void DoTitleScreen() {
 
 
 void RunTestris(bool start_in_fullscreen) {
-    cbui = CbuiInit();
-    // TODO: put as an option to the init call // along with w/h
-    if (start_in_fullscreen) { PlafGlfwToggleFullscreen(cbui->plf); }
+    cbui = CbuiInit("Testris", start_in_fullscreen);
 
     _g_testris_state = {};
     testris = &_g_testris_state;
