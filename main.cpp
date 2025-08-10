@@ -1,7 +1,8 @@
 #define ENABLE_GLFW
 
 
-#include "lib/jg_baselayer.h"
+//#include "lib/jg_baselayer.h"
+#include "../baselayer/baselayer_includes.h"
 #include "lib/jg_cbui.h"
 //#include "../cbui/cbui_includes.h"
 #include "src/testris.h"
@@ -255,7 +256,7 @@ void RunTestris(bool start_in_fullscreen) {
 
 int main (int argc, char **argv) {
     TimeProgram;
-    BaselayerAssertVersion(0, 2, 3);
+    BaselayerAssertVersion(0, 2, 4);
     CbuiAssertVersion(0, 2, 1);
 
     bool start_in_fullscreen = CLAContainsArg("--fullscreen", argc, argv);

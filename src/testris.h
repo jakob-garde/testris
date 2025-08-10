@@ -2,11 +2,6 @@
 #define __TESTRIS_H__
 
 
-#include "../lib/jg_baselayer.h"
-#include "../lib/jg_cbui.h"
-//#include "../../cbui/cbui_includes.h"
-
-
 enum BlockType {
     BT_UNINITIALIZED,
 
