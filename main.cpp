@@ -8,7 +8,7 @@
 
 f32 RenderGame() {
     // render the grid
-    f32 grid_unit_sz = cbui->plf->height / 20.0f;
+    f32 grid_unit_sz = cbui->plf->height / (1.0f * grid.visible_height);
 
     UI_LayoutExpandCenter();
     Widget *w_grid  = WidgetGetCached("testris_grid");
@@ -23,9 +23,9 @@ f32 RenderGame() {
     w_grid->x0 = (cbui->plf->width - w_grid->w) / 2.0f;
     w_grid->col_bckgrnd = COLOR_WHITE;
 
-    for (s32 y = 4; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-            GridSlot *b = grid->GetBlock(y, x);
+    for (s32 y = 4; y < grid.height; ++y) {
+        for (s32 x = 0; x < grid.width; ++x) {
+            GridSlot *b = grid.GetSlot(y, x);
             if (b->solid == true) {
                 Widget *g = WidgetGetNew();
                 TreeSibling(g);
@@ -60,10 +60,10 @@ f32 RenderGame() {
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
 
-            bool do_fill = grid->falling.data[y][x];
-            s32 yy = y - 4 + grid->falling.grid_y;
-            s32 xx = x + grid->falling.grid_x;
-            if (do_fill && yy >= 0 && yy < grid->grid_h - 4 && xx >= 0 && x < grid->grid_w) {
+            bool do_fill = grid.falling.data[y][x];
+            s32 yy = y - 4 + grid.falling.grid_y;
+            s32 xx = x + grid.falling.grid_x;
+            if (do_fill && yy >= 0 && yy < grid.height - 4 && xx >= 0 && x < grid.width) {
 
                 Widget *g = UI_Plain();
                 g->features_flg |= WF_DRAW_BACKGROUND_AND_BORDER;
@@ -74,7 +74,7 @@ f32 RenderGame() {
                 g->y0 = yy * grid_unit_sz;
                 g->col_border = COLOR_WHITE;
                 g->sz_border = 1;
-                g->col_bckgrnd = grid->falling.color;
+                g->col_bckgrnd = grid.falling.color;
 
                 UI_Pop();
             }
@@ -87,7 +87,7 @@ f32 RenderGame() {
     for (s32 y = 0; y < 4; ++y) {
         for (s32 x = 0; x < 4; ++x) {
 
-            bool do_fill = grid->next.data[y][x];
+            bool do_fill = grid.next.data[y][x];
             if (do_fill) {
 
                 Widget *g = UI_Plain();
@@ -99,7 +99,7 @@ f32 RenderGame() {
                 g->y0 = y * grid_unit_sz + offset_y;
                 g->col_border = COLOR_WHITE;
                 g->sz_border = 1;
-                g->col_bckgrnd = grid->next.color;
+                g->col_bckgrnd = grid.next.color;
 
                 UI_Pop();
             }
@@ -111,12 +111,12 @@ f32 RenderGame() {
 
 
 void UpdateTime() {
-    testris->t_fall += cbui->dt;
-    if (testris->t_fall >= testris->t_fall_interval) {
-        testris->t_fall = 0;
+    testris.t_fall += cbui->dt;
+    if (testris.t_fall >= testris.t_fall_interval) {
+        testris.t_fall = 0;
     }
 
-    testris->t_fall_interval = 400;
+    testris.t_fall_interval = 400;
 }
 
 
@@ -143,7 +143,7 @@ void DoMainScreen() {
     }
 
     // auto-fall
-    else if (testris->t_fall == 0) {
+    else if (testris.t_fall == 0) {
         BlockFallOrFreeze();
     }
 
@@ -178,10 +178,10 @@ void DoGameOver() {
             ClearGridTopAndMiddle();
             FillGridBottomRandomly();
 
-            grid->falling = BlockCreate();
-            grid->next = BlockCreate();
+            grid.falling = BlockCreate();
+            grid.next = BlockCreate();
 
-            testris->SetMode(TM_MAIN, cbui->t_framestart);
+            testris.SetMode(TM_MAIN, cbui->t_framestart);
         }
     }
 }
@@ -210,10 +210,10 @@ void DoTitleScreen() {
     UI_Label("[l/r/u/d space]");
 
     if (GetSpace()) {
-        grid->falling = BlockCreate();
-        grid->next = BlockCreate();
+        grid.falling = BlockCreate();
+        grid.next = BlockCreate();
 
-        testris->SetMode(TM_MAIN, cbui->t_framestart);
+        testris.SetMode(TM_MAIN, cbui->t_framestart);
     }
 }
 
@@ -221,16 +221,12 @@ void DoTitleScreen() {
 void RunTestris(bool start_in_fullscreen) {
     cbui = CbuiInit("Testris", start_in_fullscreen);
 
-    _g_testris_state = {};
-    testris = &_g_testris_state;
-    grid = &_grid;
-
     FillGridBottomRandomly();
 
     while (cbui->running) {
         CbuiFrameStart();
 
-        switch (testris->mode) {
+        switch (testris.mode) {
             case TM_TITLE : {
                 DoTitleScreen();
             } break;

@@ -23,56 +23,53 @@ struct Block {
     s32 grid_x;
 };
 
-
 struct GridSlot {
     Color color;
     bool solid;
     f32 blinking;
 };
-
-static GridSlot g_block_null; // ZII default return value
+GridSlot block_zero;
 
 struct Grid {
-    s32 grid_w = 10;
-    s32 grid_h = 24;
+    s32 width = 10;
+    s32 height = 24;
+    s32 visible_height = 20;
     GridSlot data[24][10];
 
     Block falling;
     Block next;
     bool pause_falling;
 
-    GridSlot *GetBlock(s32 y, s32 x) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            return &data[y][x];
+    GridSlot *GetSlot(s32 row, s32 col) {
+        if (row >= 0 && row < height && col >= 0 && col < width) {
+            return &data[row][col];
         }
         else {
-            g_block_null = {};
-            g_block_null.solid = true;
-            return &g_block_null;
+            block_zero = {};
+            block_zero.solid = true;
+
+            return &block_zero;
         }
     }
 
-    void SetBlock(s32 y, s32 x, GridSlot b) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            data[y][x] = b;
+    void SetSlot(s32 row, s32 col, GridSlot b) {
+        if (row >= 0 && row < height && col >= 0 && col < width) {
+            data[row][col] = b;
         }
         else {
             assert(1 == 0 && "SetBlock: out of scope");
         }
     }
 
-    void ClearBlock(s32 y, s32 x) {
-        if (y >= 0 && y < grid_h && x >= 0 && x < grid_w) {
-            data[y][x] = {};
+    void ClearSlot(s32 row, s32 col) {
+        if (row >= 0 && row < height && col >= 0 && col < width) {
+            data[row][col] = {};
         }
         else {
-            assert(1 == 0 && "SetBlock: out of scope");
+            assert(1 == 0 && "ClearBlock: out of scope");
         }
     }
 };
-
-static Grid _grid;
-static Grid *grid;
 
 enum TestrisMode {
     TM_TITLE,
@@ -98,68 +95,64 @@ struct Testris {
 };
 
 
-static Testris _g_testris_state;
-static Testris *testris;
+// globals
+static Testris testris;
+static Grid grid;
 
 
 f32 TimeSinceModeStart_ms() {
-    f32 t_delta_ms = (cbui->t_framestart - testris->t_mode_start) / 1000;
+    f32 t_delta_ms = (cbui->t_framestart - testris.t_mode_start) / 1000;
     return t_delta_ms;
 }
 
 void UpdateGridState() {
+    // find the blinking row, or eliminate a blinking row that has timed out
+    for (s32 row = 0; row < grid.height; ++row) {
 
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-        bool line_eliminated = true;
+        for (s32 col = 0; col < grid.width; ++col) {
+            GridSlot *b = grid.GetSlot(row, col);
 
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-            GridSlot *b = grid->GetBlock(y, x);
-            line_eliminated = line_eliminated && b->blinking > testris->t_animate_interval * 3;
+            if (b->blinking > (testris.t_animate_interval * 3)) {
 
-            if (b->blinking > 0 && b->blinking < testris->t_animate_interval) {
+                // eliminate this row
+                for (s32 z = row - 1; z >= 0; --z) {
+                    for (s32 x = 0; x < grid.width; ++x) {
+
+                        grid.data[z + 1][x] = grid.data[z][x];
+                        grid.data[z][x] = {};
+                    }
+                }
+                grid.pause_falling = false;
+
+                return;
+            }
+            else if (b->blinking > 0 && (b->blinking > testris.t_animate_interval * 2)) {
                 b->color = COLOR_BLACK;
             }
-            else if (b->blinking > 0 && b->blinking < testris->t_animate_interval * 2) {
-                b->color = COLOR_WHITE;
+            else if (b->blinking > 0 && (b->blinking > testris.t_animate_interval)) {
+                b->color = COLOR_GRAY;
             }
-            else if (b->blinking > 0 && b->blinking < testris->t_animate_interval * 3) {
+            else if (b->blinking > 0) {
                 b->color = COLOR_BLACK;
-            }
-            else if (b->blinking > 0.6f) {
-                b->solid = false;
-                b->blinking = 0;
             }
 
             if (b->blinking > 0) {
                 b->blinking += cbui->dt;
             }
         }
-
-        if (line_eliminated) {
-            for (s32 z = y - 1; z >= 0; --z) {
-                for (s32 x = 0; x < grid->grid_w; ++x) {
-                    GridSlot *b = grid->GetBlock(z, x);
-
-                    grid->SetBlock(z + 1, x, *b);
-                    grid->ClearBlock(z, x);
-                }
-            }
-
-            grid->pause_falling = false;
-        }
     }
 }
 
 bool BlockCollides(Block block) {
-    for (s32 y = 0; y < 4; ++y) {
-        for (s32 x = 0; x < 4; ++x) {
+    for (s32 row = 0; row < 4; ++row) {
+        for (s32 col = 0; col < 4; ++col) {
 
-            if (block.data[y][x]) {
-                s32 yy = y + block.grid_y;
-                s32 xx = x + block.grid_x;
+            if (block.data[row][col]) {
+                s32 y = row + block.grid_y;
+                s32 x = col + block.grid_x;
 
-                bool in_range = yy >= 0 && yy < grid->grid_h && xx >= 0 && x < grid->grid_w;
-                bool collides = !in_range || grid->GetBlock(yy, xx)->solid;
+                bool in_range = y >= 0 && y < grid.height && x >= 0 && col < grid.width;
+                bool collides = !in_range || grid.GetSlot(y, x)->solid;
 
                 if (collides) {
                     return true;
@@ -220,8 +213,9 @@ Block BlockRotate(Block b) {
 }
 
 Block BlockMirrorX(Block b) {
+    // NOTE: Only mirror the first 3 columns: Otherwise the blocks spawn at inconsistent column position
+
     Block m = b;
-    // only mirror the first 3 columns
     for (s32 y = 0; y < 4; ++y) {
         m.data[y][0] = b.data[y][2];
         m.data[y][2] = b.data[y][0];
@@ -230,25 +224,25 @@ Block BlockMirrorX(Block b) {
 }
 
 void BlockRotateIfAble() {
-    Block rot = BlockRotate(grid->falling);
+    Block rot = BlockRotate(grid.falling);
     if (BlockCollides(rot) == false) {
-        grid->falling = rot;
+        grid.falling = rot;
     }
 }
 
 void BlockLeftIfAble() {
-    Block left = grid->falling;
+    Block left = grid.falling;
     left.grid_x -= 1;
     if (BlockCollides(left) == false) {
-        grid->falling = left;
+        grid.falling = left;
     }
 }
 
 void BlockRightIfAble() {
-    Block right = grid->falling;
+    Block right = grid.falling;
     right.grid_x += 1;
     if (BlockCollides(right) == false) {
-        grid->falling = right;
+        grid.falling = right;
     }
 }
 
@@ -257,11 +251,12 @@ Block BlockCreate() {
     s32 color_selector = RandMinMaxI(0, 3);
     Color blocks_color;
     switch (color_selector) {
-    case 0: blocks_color = COLOR_RED; break;
-    case 1: blocks_color = COLOR_GREEN; break;
-    case 2: blocks_color = COLOR_YELLOW2; break;
-    case 3: blocks_color = COLOR_BLUE; break;
-    default: assert(1 == 0 && "switch default"); break; }
+        case 0: blocks_color = COLOR_RED; break;
+        case 1: blocks_color = COLOR_GREEN; break;
+        case 2: blocks_color = COLOR_YELLOW2; break;
+        case 3: blocks_color = COLOR_BLUE; break;
+        default: assert(1 == 0 && "switch default"); break;
+    }
 
     Block block = {};
     block.tpe = (BlockType) RandMinMaxI(1, 5);
@@ -270,44 +265,45 @@ Block BlockCreate() {
     block.color = blocks_color;
 
     switch (block.tpe) {
-    case BT_LONG: {
-        block.data[0][1] = true;
-        block.data[1][1] = true;
-        block.data[2][1] = true;
-        block.data[3][1] = true;
-    } break;
-    case BT_STEP: {
-        block.data[0][0] = true;
-        block.data[0][1] = true;
-        block.data[1][1] = true;
-        block.data[1][2] = true;
-    } break;
-    case BT_TEE: {
-        block.data[0][1] = true;
-        block.data[1][0] = true;
-        block.data[1][1] = true;
-        block.data[1][2] = true;
-    } break;
-    case BT_BOX: {
-        block.data[0][0] = true;
-        block.data[0][1] = true;
-        block.data[1][0] = true;
-        block.data[1][1] = true;
-    } break;
-    case BT_ELL: {
-        block.data[0][0] = true;
-        block.data[1][0] = true;
-        block.data[2][0] = true;
-        block.data[2][1] = true;
-    } break;
-    default: assert(1 == 0 && "switch default"); break; }
+        case BT_LONG: {
+            block.data[0][1] = true;
+            block.data[1][1] = true;
+            block.data[2][1] = true;
+            block.data[3][1] = true;
+        } break;
+        case BT_STEP: {
+            block.data[0][0] = true;
+            block.data[0][1] = true;
+            block.data[1][1] = true;
+            block.data[1][2] = true;
+        } break;
+        case BT_TEE: {
+            block.data[0][1] = true;
+            block.data[1][0] = true;
+            block.data[1][1] = true;
+            block.data[1][2] = true;
+        } break;
+        case BT_BOX: {
+            block.data[0][0] = true;
+            block.data[0][1] = true;
+            block.data[1][0] = true;
+            block.data[1][1] = true;
+        } break;
+        case BT_ELL: {
+            block.data[0][0] = true;
+            block.data[1][0] = true;
+            block.data[2][0] = true;
+            block.data[2][1] = true;
+        } break;
+        default: assert(1 == 0 && "switch default"); break;
+    }
 
-    // randomly mirror the blocks (one of two mirrors)
+    // randomly mirror
     if (RandMinMaxI(0, 1) == 1) {
         block = BlockMirrorX(block);
     }
 
-    // randomly rotate the blocks (one of four rotations)
+    // randomly rotate
     s32 rotations = RandMinMaxI(0, 3);
     for (s32 i = 0; i < rotations; ++i) {
         block = BlockRotate(block);
@@ -317,59 +313,59 @@ Block BlockCreate() {
 }
 
 bool BlockFallOrFreeze() {
-    Block test = grid->falling;
+    Block test = grid.falling;
     test.grid_y += 1;
     bool can_fall = ! BlockCollides(test);
 
     if (can_fall) {
-        grid->falling.grid_y += 1;
+        grid.falling.grid_y += 1;
     }
 
     else {
         GridSlot slot = {};
-        slot.color = grid->falling.color;
+        slot.color = grid.falling.color;
         slot.solid = true;
 
         // solidify into the grid
-        for (s32 y = 0; y < 4; ++y) {
-            for (s32 x = 0; x < 4; ++x) {
-                if (grid->falling.data[y][x]) {
-                    s32 yy = y + grid->falling.grid_y;
-                    s32 xx = x + grid->falling.grid_x;
+        for (s32 row = 0; row < 4; ++row) {
+            for (s32 col = 0; col < 4; ++col) {
+                if (grid.falling.data[row][col]) {
+                    s32 y = row + grid.falling.grid_y;
+                    s32 x = col + grid.falling.grid_x;
 
-                    grid->SetBlock(yy, xx, slot);
+                    grid.SetSlot(y, x, slot);
                 }
             }
         }
 
-        if (grid->falling.grid_y < 4) {
-            testris->SetMode(TM_GAMEOVER, cbui->t_framestart);
+        if (grid.falling.grid_y < 4) {
+            testris.SetMode(TM_GAMEOVER, cbui->t_framestart);
         }
 
         // spawn
-        if (grid->next.tpe == BT_UNINITIALIZED) {
-            grid->falling = BlockCreate();
+        if (grid.next.tpe == BT_UNINITIALIZED) {
+            grid.falling = BlockCreate();
         }
         else {
-            grid->falling = grid->next;
+            grid.falling = grid.next;
         }
 
-        grid->falling = grid->next;
-        grid->next = BlockCreate();
+        grid.falling = grid.next;
+        grid.next = BlockCreate();
     }
 
     // find full rows
-    for (s32 y = grid->grid_h - 1; y >= 0; --y) {
+    for (s32 row = grid.height - 1; row >= 0; --row) {
         bool row_full = true;
-        for (s32 x = 0; x < grid->grid_w; ++x) {
-            row_full = row_full && grid->GetBlock(y, x)->solid;
+        for (s32 col = 0; col < grid.width; ++col) {
+            row_full = row_full && grid.GetSlot(row, col)->solid;
         }
 
         if (row_full) {
-            grid->pause_falling = true;
+            grid.pause_falling = true;
 
-            for (s32 x = 0; x < grid->grid_w; ++x) {
-                GridSlot *b = grid->GetBlock(y, x);
+            for (s32 col = 0; col < grid.width; ++col) {
+                GridSlot *b = grid.GetSlot(row, col);
 
                 // start blinking sequence
                 if (b->blinking == 0) {
@@ -383,18 +379,19 @@ bool BlockFallOrFreeze() {
 }
 
 void FillGridRandomly() {
-    for (s32 y = 0; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
+    for (s32 row = 0; row < grid.height; ++row) {
+        for (s32 col = 0; col < grid.width; ++col) {
 
-            GridSlot *block = grid->GetBlock(y, x);
+            GridSlot *block = grid.GetSlot(row, col);
 
             s32 color_selector = RandMinMaxI(0, 3);
             switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
+                case 0: block->color = COLOR_RED; break;
+                case 1: block->color = COLOR_GREEN; break;
+                case 2: block->color = COLOR_YELLOW; break;
+                case 3: block->color = COLOR_BLUE; break;
+                default: assert(1 == 0 && "switch default"); break;
+            }
 
             block->solid = RandMinMaxI(0, 1) == 1;
         }
@@ -402,18 +399,19 @@ void FillGridRandomly() {
 }
 
 void FillGridBottomRandomly() {
-    for (s32 y = 16 + 4; y < grid->grid_h; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
+    for (s32 row = grid.visible_height; row < grid.height; ++row) {
+        for (s32 col = 0; col < grid.width; ++col) {
 
-            GridSlot *block = grid->GetBlock(y, x);
+            GridSlot *block = grid.GetSlot(row, col);
 
             s32 color_selector = RandMinMaxI(0, 3);
             switch (color_selector) {
-            case 0: block->color = COLOR_RED; break;
-            case 1: block->color = COLOR_GREEN; break;
-            case 2: block->color = COLOR_YELLOW2; break;
-            case 3: block->color = COLOR_BLUE; break;
-            default: assert(1 == 0 && "switch default"); break; }
+                case 0: block->color = COLOR_RED; break;
+                case 1: block->color = COLOR_GREEN; break;
+                case 2: block->color = COLOR_YELLOW2; break;
+                case 3: block->color = COLOR_BLUE; break;
+                default: assert(1 == 0 && "switch default"); break;
+            }
 
             block->solid = RandMinMaxI(0, 1) == 1;
         }
@@ -421,16 +419,14 @@ void FillGridBottomRandomly() {
 }
 
 void ClearGridTopAndMiddle() {
-    for (s32 y = 0; y < 20; ++y) {
-        for (s32 x = 0; x < grid->grid_w; ++x) {
+    for (s32 row = 0; row < grid.visible_height; ++row) {
+        for (s32 col = 0; col < grid.width; ++col) {
 
-            GridSlot *block = grid->GetBlock(y, x);
+            GridSlot *block = grid.GetSlot(row, col);
             *block = {};
         }
     }
 }
-
-
 
 
 #endif
