@@ -1,4 +1,5 @@
 #define ENABLE_GLFW
+#define GLEW_STATIC
 
 
 #include "lib/jg_baselayer.h"
@@ -255,4 +256,12 @@ int main (int argc, char **argv) {
 
     bool start_in_fullscreen = CLAContainsArg("--fullscreen", argc, argv);
     RunTestris(start_in_fullscreen);
+}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
+    TimeProgram;
+    BaselayerAssertVersion(0, 2, 3);
+    CbuiAssertVersion(0, 2, 1);
+
+    RunTestris(false);
 }

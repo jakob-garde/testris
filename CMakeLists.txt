@@ -28,9 +28,9 @@ link_directories(${DIR_C_LIBS}/glfw/lib/)
 include_directories(${DIR_C_LIBS}/glew/include/)
 link_directories(${DIR_C_LIBS}/glew/lib/)
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} WIN32 main.cpp)
 target_link_libraries(${PROJECT_NAME} glfw3)
-target_link_libraries(${PROJECT_NAME} glew32)
+target_link_libraries(${PROJECT_NAME} glew32s)
 target_link_libraries(${PROJECT_NAME} OpenGL32)
 
 
