@@ -26,6 +26,7 @@ include_directories(lib/include/)
 link_directories(lib/)
 
 add_executable(${PROJECT_NAME} WIN32 main.cpp)
+target_link_libraries(${PROJECT_NAME} all_res)
 target_link_libraries(${PROJECT_NAME} glfw3)
 target_link_libraries(${PROJECT_NAME} glew32s)
 target_link_libraries(${PROJECT_NAME} OpenGL32)

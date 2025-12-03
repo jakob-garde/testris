@@ -2233,7 +2233,10 @@ struct ResourceStreamHandle {
 #define MAX_RESOURCE_CNT 128
 
 // MOD
-extern char _binary_all_res_start[];
+extern "C" {
+
+    extern char _binary_all_res_start[];
+}
 
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool put_strs_inline = true) {
 
