@@ -10,7 +10,7 @@ find_package(GLEW REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} main.cpp lib/all_res.o)
 
 target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} ${GLEW_LIBRARIES})
