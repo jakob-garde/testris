@@ -20,13 +20,10 @@ target_link_libraries(${PROJECT_NAME} glfw)
 # Windows:
 else()
 message("WIN32 configuration")
-set(DIR_C_LIBS "lib_win")
 
 # glfw / glew
-include_directories(${DIR_C_LIBS}/glfw/include/)
-link_directories(${DIR_C_LIBS}/glfw/lib/)
-include_directories(${DIR_C_LIBS}/glew/include/)
-link_directories(${DIR_C_LIBS}/glew/lib/)
+include_directories(lib/include/)
+link_directories(lib/)
 
 add_executable(${PROJECT_NAME} WIN32 main.cpp)
 target_link_libraries(${PROJECT_NAME} glfw3)
