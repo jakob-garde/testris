@@ -2,8 +2,6 @@
 *.bin
 *.dll
 *.out
-*.o
-*.so
 build/*
 */build/*
 */*/build/*
