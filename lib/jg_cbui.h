@@ -2232,16 +2232,26 @@ struct ResourceStreamHandle {
 // TODO: how do we put a bound on the number of resources in a file?
 #define MAX_RESOURCE_CNT 128
 
+// MOD
+extern char _binary_all_res_start[];
 
 ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, const char *filename, bool put_strs_inline = true) {
 
     ResourceStreamHandle hdl = {};
+
+    // MOD
+    /*
     hdl.first = (ResourceHdr *) LoadFileFSeek(a_dest, (char*) filename);
     if (hdl.first == NULL) {
         printf("Could not load file: '%s', exiting ...\n", filename);
         exit(0);
         return hdl;
     }
+    */
+
+    // MOD
+    hdl.first =  (ResourceHdr *) &_binary_all_res_start[0];
+
     HashMap map_names = InitMap(a_tmp, MAX_RESOURCE_CNT);
     HashMap map_keynames = InitMap(a_tmp, MAX_RESOURCE_CNT);
 
@@ -2280,7 +2290,9 @@ ResourceStreamHandle ResourceStreamLoadAndOpen(MArena *a_tmp, MArena *a_dest, co
     }
     StrPopArenas();
 
-    printf("opened resource file '%s': %u entries (", filename, hdl.cnt);
+    // MOD
+    printf("opened resource: %u entries (", hdl.cnt);
+
     for (u32 i = 0; i < RST_CNT; ++i) {
         printf("%u", hdl.cnt_tpe[i]);
         if (i + 1 < RST_CNT) {
