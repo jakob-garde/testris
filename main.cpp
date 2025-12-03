@@ -258,6 +258,8 @@ int main (int argc, char **argv) {
     RunTestris(start_in_fullscreen);
 }
 
+
+#if WINDOWS
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow) {
     TimeProgram;
     BaselayerAssertVersion(0, 2, 3);
@@ -265,3 +267,4 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 
     RunTestris(false);
 }
+#endif
