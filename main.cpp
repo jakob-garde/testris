@@ -117,7 +117,6 @@ void UpdateTime() {
     }
 }
 
-
 void DoMainScreen() {
     UpdateTime();
     UpdateGridState();
@@ -151,18 +150,17 @@ void DoMainScreen() {
 
     // hold left/right
     if (testris.t_lr_down > TESTRIS_HOLDKEY_INTERVAL) {
-
-        if (testris_a_state || testris_l_state) {
+        if (testris_a_state || testris_l_state) { 
             testris.t_lr_down = 0;
 
             BlockLeftIfAble();
         }
-        else if ((testris_d_state || testris_r_state)) {
+        else if (testris_d_state || testris_r_state) {
             testris.t_lr_down = 0;
 
             BlockRightIfAble();
         }
-        else if ((testris_s_state || testris_adown_state)) {
+        else if (testris_s_state || testris_adown_state) {
             testris.t_lr_down = 0;
 
             BlockFallOrFreeze();
