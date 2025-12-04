@@ -1,3 +1,3 @@
 # TESTRIS
 
-A simple tetris implementation practice project.
+My first game <3

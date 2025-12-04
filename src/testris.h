@@ -2,6 +2,12 @@
 #define __TESTRIS_H__
 
 
+
+#define TESTRIS_FALL_INTERVAL 400
+#define TESTRIS_ANIMATE_INTERVAL 100
+#define TESTRIS_HOLDKEY_INTERVAL 70
+
+
 enum BlockType {
     BT_UNINITIALIZED,
 
@@ -83,9 +89,8 @@ struct Testris {
     TestrisMode mode;
     TestrisMode mode_prev;
     f32 t_fall;
-    f32 t_fall_interval;
-    f32 t_animate_interval = 100;
     f32 t_mode_start;
+    f32 t_lr_down;
 
     void SetMode(TestrisMode mode_new, f32 t_start) {
         t_mode_start = t_start;
@@ -112,7 +117,7 @@ void UpdateGridState() {
         for (s32 col = 0; col < grid.width; ++col) {
             GridSlot *b = grid.GetSlot(row, col);
 
-            if (b->blinking > (testris.t_animate_interval * 3)) {
+            if (b->blinking > (TESTRIS_ANIMATE_INTERVAL * 3)) {
 
                 // eliminate this row
                 for (s32 z = row - 1; z >= 0; --z) {
@@ -126,10 +131,10 @@ void UpdateGridState() {
 
                 return;
             }
-            else if (b->blinking > 0 && (b->blinking > testris.t_animate_interval * 2)) {
+            else if (b->blinking > 0 && (b->blinking > TESTRIS_ANIMATE_INTERVAL * 2)) {
                 b->color = COLOR_BLACK;
             }
-            else if (b->blinking > 0 && (b->blinking > testris.t_animate_interval)) {
+            else if (b->blinking > 0 && (b->blinking > TESTRIS_ANIMATE_INTERVAL)) {
                 b->color = COLOR_GRAY;
             }
             else if (b->blinking > 0) {

@@ -4212,7 +4212,18 @@ struct PlafGlfw {
     s32 window_xpos;
     s32 window_ypos;
     u8 *image_buffer;
+
 };
+
+
+// CUSTOM EDITS FOR 
+// TESTRIS
+static bool testris_l_state;
+static bool testris_r_state;
+static bool testris_a_state;
+static bool testris_d_state;
+static bool testris_s_state;
+static bool testris_adown_state;
 
 
 inline PlafGlfw *_GlfwWindowToUserPtr(GLFWwindow* window) {
@@ -4295,15 +4306,24 @@ void KeyCallBack(GLFWwindow* window,  int key, int scancode, int action, int mod
         }
         else if (key == GLFW_KEY_LEFT) {
             plf->akeys.left = true;
+
+            // TESTRIS
+            testris_l_state = true;
         }
         else if (key == GLFW_KEY_RIGHT) {
             plf->akeys.right = true;
+
+            // TESTRIS
+            testris_r_state = true;
         }
         else if (key == GLFW_KEY_UP) {
             plf->akeys.up = true;
         }
         else if (key == GLFW_KEY_DOWN) {
             plf->akeys.down = true;
+
+            // TESTRIS
+            testris_adown_state = true;
         }
         else if (key >= 290 && key <= 301) {
             // 290-301: F1 through F12
@@ -4318,6 +4338,39 @@ void KeyCallBack(GLFWwindow* window,  int key, int scancode, int action, int mod
         }
         else if (key == 'Z' && mods == GLFW_MOD_CONTROL) {
             printf("ctr-Z\n");
+        }
+
+        // TESTRIS
+        else if (key == 'a') {
+            testris_a_state = true;
+        }
+        else if (key == 'd') {
+            testris_d_state = true;
+        }
+        else if (key == 's') {
+            testris_s_state = true;
+        }
+    }
+
+    // TESTRIS
+    if (action == GLFW_RELEASE) {
+        if (key == GLFW_KEY_LEFT) {
+            testris_l_state = false;
+        }
+        else if (key == GLFW_KEY_RIGHT) {
+            testris_r_state = false;
+        }
+        else if (key == GLFW_KEY_DOWN) {
+            testris_adown_state = false;
+        }
+        else if (key == 'a') {
+            testris_a_state = false;
+        }
+        else if (key == 'd') {
+            testris_d_state = false;
+        }
+        else if (key == 's') {
+            testris_adown_state = false;
         }
     }
 }
@@ -4634,7 +4687,7 @@ void CbuiFrameStart() {
     ImageBufferClear(cbui->plf->width, cbui->plf->height);
 
     cbui->t_framestart = ReadSystemTimerMySec();
-    cbui->dt = (cbui->t_framestart - cbui->t_framestart_prev) / 1000;
+    cbui->dt = (cbui->t_framestart - cbui->t_framestart_prev) / 1000; // ms
     cbui->dts[cbui->frameno % FR_RUNNING_AVG_COUNT] = cbui->dt;
 
     f32 sum = 0;

@@ -110,14 +110,11 @@ f32 RenderGame() {
     return w_grid->w + 0.6f * grid_unit_sz;
 }
 
-
 void UpdateTime() {
     testris.t_fall += cbui->dt;
-    if (testris.t_fall >= testris.t_fall_interval) {
+    if (testris.t_fall >= TESTRIS_FALL_INTERVAL) {
         testris.t_fall = 0;
     }
-
-    testris.t_fall_interval = 400;
 }
 
 
@@ -130,23 +127,48 @@ void DoMainScreen() {
         BlockRotateIfAble();
     }
     else if (GetChar('a') || GetLeft()) {
+        testris.t_lr_down = 0;
+
         BlockLeftIfAble();
     }
     else if (GetChar('d') || GetRight()) {
+        testris.t_lr_down = 0;
+
         BlockRightIfAble();
     }
-
     else if (GetChar('s') || GetDown()) {
+        testris.t_lr_down = 0;
+
         BlockFallOrFreeze();
     }
     else if (GetSpace()) {
         while (BlockFallOrFreeze());
     }
-
     // auto-fall
     else if (testris.t_fall == 0) {
         BlockFallOrFreeze();
     }
+
+    // hold left/right
+    if (testris.t_lr_down > TESTRIS_HOLDKEY_INTERVAL) {
+
+        if (testris_a_state || testris_l_state) {
+            testris.t_lr_down = 0;
+
+            BlockLeftIfAble();
+        }
+        else if ((testris_d_state || testris_r_state)) {
+            testris.t_lr_down = 0;
+
+            BlockRightIfAble();
+        }
+        else if ((testris_s_state || testris_adown_state)) {
+            testris.t_lr_down = 0;
+
+            BlockFallOrFreeze();
+        }
+    }
+    testris.t_lr_down += cbui->dt;
 
     // render
     RenderGame();
@@ -217,7 +239,6 @@ void DoTitleScreen() {
         testris.SetMode(TM_MAIN, cbui->t_framestart);
     }
 }
-
 
 void RunTestris(bool start_in_fullscreen) {
     cbui = CbuiInit("Testris", start_in_fullscreen);
