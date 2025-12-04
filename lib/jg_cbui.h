@@ -4618,12 +4618,12 @@ struct CbuiState {
 static CbuiState _g_cbui_state;
 static CbuiState *cbui;
 
-CbuiState *CbuiInit(const char *title, bool start_in_fullscreen) {
+CbuiState *CbuiInit(const char *title, bool start_in_fullscreen, u32 width, u32 height) {
     _g_cbui_state = {};
     cbui = &_g_cbui_state;
     cbui->running = true;
     cbui->ctx = InitBaselayer();
-    cbui->plf = PlafGlfwInit(title);
+    cbui->plf = PlafGlfwInit(title, width, height);
     cbui->plf->image_buffer = ImageBufferInit(cbui->ctx->a_life);
     cbui->t_framestart = ReadSystemTimerMySec();
     cbui->t_framestart_prev = cbui->t_framestart;

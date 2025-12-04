@@ -18,7 +18,7 @@ static Grid grid;
 
 // the game loop
 void RunTestris(bool start_in_fullscreen) {
-    cbui = CbuiInit("Testris", start_in_fullscreen);
+    cbui = CbuiInit("Testris", start_in_fullscreen, 1000, 500);
 
     FillGridBottomRandomly();
     while (cbui->running) {
