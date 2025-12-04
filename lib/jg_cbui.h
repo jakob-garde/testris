@@ -2045,8 +2045,10 @@ void BlitQuads(Array<QuadHexaVertex> quads, ImageRGBA *img) {
         u64 q_texture = q->GetTextureId();
         Color q_color = q->GetColor();
 
-        assert(img->height >= q_h);
-        assert(img->width >= q_w);
+        // MOD
+        if (img->height < q_h || img->width < q_w) {
+            continue;
+        }
 
         u32 stride_img = img->width;
 
