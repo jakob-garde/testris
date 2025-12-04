@@ -4,14 +4,14 @@
 #include "lib/jg_baselayer.h"
 #include "lib/jg_cbui.h"
 
-// testris and grid types
+// game and grid types
 #include "src/testris_types.h"
 
 // game state
 static Testris testris;
 static Grid grid;
 
-// functionality
+// logics and rendering
 #include "src/testris_lib.h"
 #include "src/render_and_update.h"
 
